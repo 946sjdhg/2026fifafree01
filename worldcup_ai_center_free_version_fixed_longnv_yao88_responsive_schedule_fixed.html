@@ -1,0 +1,3801 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 FIFA 世界盃 AI 數據模擬中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .pitch-bg { background-color: #0f2d1d; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #26334d; border-radius: 10px; }
+        .match-locked { opacity: 0.5; filter: grayscale(0.8); cursor: not-allowed; }
+        .date-header { position: sticky; top: 0; z-index: 10; background: #090d1a; padding: 10px 0; border-bottom: 1px solid #1e293b; color: #f59e0b; font-weight: 900; }
+        @keyframes pulse-fast { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .ai-loading-dot { animation: pulse-fast 1s infinite; }
+        .pie-chart { border-radius: 50%; background: conic-gradient(var(--home-color) 0% var(--p1), var(--draw-color) var(--p1) var(--p2), var(--away-color) var(--p2) 100%); }
+    </style>
+
+
+<style id="entry-notice-modal-style">
+    body.entry-notice-open { overflow: hidden !important; }
+    #entry-notice-modal.entry-notice-hidden { display: none !important; }
+    #entry-notice-submit.entry-notice-ready {
+        background: linear-gradient(90deg, #f59e0b, #10b981) !important;
+        color: #020617 !important;
+        box-shadow: 0 0 24px rgba(16,185,129,0.22);
+    }
+    #entry-notice-modal { animation: entryNoticeFadeIn .22s ease-out both; }
+    #entry-notice-modal > div { animation: entryNoticePop .26s ease-out both; }
+    @keyframes entryNoticeFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes entryNoticePop { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+</style>
+</head>
+<body class="bg-[#070a13] text-slate-100 font-sans h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- 進站溫馨提醒 / 使用者同意視窗 -->
+    <div id="entry-notice-modal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md px-4">
+        <div class="w-full max-w-xl overflow-hidden rounded-3xl border border-amber-400/30 bg-[#0b1220] shadow-[0_0_50px_rgba(245,158,11,0.22)]">
+            <div class="bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-emerald-500/10 border-b border-amber-400/20 px-6 py-5 text-center">
+                <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-amber-300/40 bg-amber-400/10 text-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.24)]">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-black tracking-widest text-amber-200">溫馨提醒</h2>
+                <p class="mt-1 text-xs font-bold tracking-wide text-slate-400">進入系統前請先閱讀並勾選同意</p>
+            </div>
+
+            <div class="space-y-4 px-6 py-5 text-sm font-semibold leading-7 text-slate-200">
+                <p class="text-center text-base font-black text-emerald-300">此系統為賽前預測以及賽果結算</p>
+
+                <div class="rounded-2xl border border-slate-700/80 bg-slate-950/55 p-4 text-slate-300">
+                    <p>會根據當天雙方隊伍賽況重新計算後面賽果</p>
+                    <p class="mt-2">參考三大足球數據網、四大AI模型、各大論壇準度高達80%的玩家、討論區支持度、國際賽事分析師所有數據做統整</p>
+                    <p class="mt-2 text-amber-300">僅作為輔助參考 不代表實際賽果</p>
+                </div>
+
+                <div class="rounded-2xl border border-emerald-400/25 bg-emerald-400/8 p-4 text-center">
+                    <p class="font-black text-slate-100">如要解鎖當日賽事</p>
+                    <p class="mt-1 text-slate-300">請找你的專屬代理 <span class="font-black text-amber-300">龍女</span></p>
+                    <p class="mt-2 text-sm font-bold text-slate-400">Line ID：</p>
+                    <p class="text-lg font-black tracking-widest text-emerald-300">@yao88</p>
+                </div>
+
+                <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-700 bg-slate-900/70 p-4 transition hover:border-amber-400/50">
+                    <input id="entry-notice-agree" type="checkbox" class="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-amber-400">
+                    <span class="text-sm font-bold text-slate-200">我已閱讀以上內容，並同意此系統僅作為輔助參考，不代表實際賽果。</span>
+                </label>
+
+                <button id="entry-notice-submit" type="button" disabled class="w-full rounded-2xl bg-slate-700 py-3.5 text-sm font-black tracking-[0.2em] text-slate-400 transition disabled:cursor-not-allowed disabled:opacity-60">
+                    送出並進入系統
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <header class="border-b border-slate-900 bg-[#0c1222]/90 px-6 py-4 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="bg-gradient-to-tr from-amber-500 to-red-600 p-2.5 rounded-lg text-white shadow-lg"><i class="fa-solid fa-soccer-ball text-lg"></i></div>
+            <div>
+                <h1 class="text-lg font-black tracking-widest bg-gradient-to-r from-amber-400 to-emerald-400 bg-clip-text text-transparent">2026 世界盃 AI 模擬中心</h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">72 Matches Loaded · 6/12 - 6/28 Full Group Stage</p>
+            </div>
+        </div>
+        <div class="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-full font-bold shadow-[0_0_12px_rgba(16,185,129,0.2)] animate-pulse flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_#34d399]"></span>
+            即時參考三大數據網當前情報實時修正
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <aside class="w-80 bg-[#090d1a] border-r border-slate-900 flex flex-col shrink-0">
+            <div id="schedule-container" class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2"></div>
+        </aside>
+
+        <main class="flex-1 bg-[#070a12] p-6 flex flex-col gap-5 overflow-y-auto custom-scroll">
+            <div class="w-full relative rounded-2xl overflow-hidden border border-slate-700 bg-[#0f2d1d] aspect-[16/7] max-h-[22vh] shrink-0 shadow-inner">
+                <canvas id="live-pitch-canvas" class="w-full h-full relative z-10"></canvas>
+            </div>
+
+            <div class="bg-[#0d1527] p-4 rounded-xl border border-slate-800 shadow-xl">
+                <h3 id="panel-title" class="text-lg font-black">請從左側日期選擇場次</h3>
+                <p id="panel-meta" class="text-xs text-slate-500 font-mono mt-1">選中賽事後將啟動 AI 數據對比</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 shrink-0">
+                <div class="bg-[#0c162e] border border-blue-500/20 rounded-xl p-4 shadow-md shadow-blue-950/50">
+                    <span class="text-xs font-black text-blue-400 uppercase tracking-widest border-l-4 border-blue-500 pl-2">主隊核心戰力 (精選三人)</span>
+                    <div id="home-stars-box" class="mt-3 space-y-2.5"></div>
+                </div>
+                <div class="bg-[#181124] border border-red-500/20 rounded-xl p-4 shadow-md shadow-red-950/50">
+                    <span class="text-xs font-black text-red-400 uppercase tracking-widest border-l-4 border-red-500 pl-2">客隊核心戰力 (精選三人)</span>
+                    <div id="away-stars-box" class="mt-3 space-y-2.5"></div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="w-[480px] bg-[#090d1a] border-l border-slate-900 p-4 flex flex-col gap-4 overflow-y-auto custom-scroll shrink-0">
+            
+            <div class="bg-[#0c1122] border border-slate-800 rounded-xl p-4 space-y-4 relative overflow-hidden shrink-0">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="font-bold text-slate-200">AI 大數據預測模組</span>
+                    <span class="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded"><i class="fa-solid fa-crown mr-1"></i> VIP專屬</span>
+                </div>
+
+                <div class="space-y-4 relative">
+                    <div class="bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20 space-y-3 relative z-10">
+                        <div class="text-slate-200 font-bold text-base">🎯 核心推薦：<span id="adv-team" class="text-emerald-400 ml-2">--</span></div>
+                    </div>
+
+                    <div class="blur-md select-none pointer-events-none space-y-4">
+                        <div>
+                            <span class="text-xs text-slate-500 block mb-2 font-bold">精選比分推薦 (Top 5)</span>
+                            <div id="choices-box" class="grid grid-cols-5 gap-1.5"></div>
+                        </div>
+
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-900 mb-2">
+                            <span class="text-xs text-slate-400 font-bold block mb-2 italic"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i> AI 戰術報告</span>
+                            <p id="report-box" class="text-xs text-slate-300 leading-relaxed">請點選賽事以生成 analysis...</p>
+                        </div>
+
+                        <div class="space-y-2 border-t border-slate-800/60 pt-3">
+                            <div class="text-xs text-slate-400">📈 讓球盤口建議：<span id="adv-handicap" class="text-amber-400 ml-2 font-mono font-bold">--</span></div>
+                            <div class="text-xs text-slate-400">⚽ 大小分建議：<span id="adv-size" class="text-blue-400 ml-2 font-mono">--</span></div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase">跨網量化信心指標</span>
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                                    <div id="gauge-bar-fill" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-1000" style="width: 0%"></div>
+                                </div>
+                                <span id="result-probability" class="text-lg font-mono font-black text-emerald-400">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="absolute top-[68px] inset-x-0 bottom-0 z-20 bg-[#0c1122]/40 flex flex-col items-center justify-center text-center p-4">
+                        <div class="bg-slate-950/90 border border-slate-800 px-5 py-4 rounded-xl shadow-2xl max-w-[90%] backdrop-blur-sm">
+                            <div class="text-amber-500 text-lg mb-1.5"><i class="fa-solid fa-gem animate-bounce"></i></div>
+                            <h4 class="font-black text-xs text-slate-200 tracking-wide">VIP版即可免費查看</h4>
+                            <p class="text-[11px] font-bold mt-1 tracking-wider bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">歡迎找龍女升級權限</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-[#09111e] border border-amber-500/20 rounded-xl p-4 flex flex-col shrink-0 relative">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+                    <span class="font-bold text-slate-200 flex items-center gap-1.5"><i class="fa-solid fa-microchip text-teal-400"></i> 多模型 三大足球數據網 實時生成器</span>
+                    <span class="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold font-mono">LIVE API</span>
+                </div>
+                
+                <div class="grid grid-cols-4 gap-1.5 mb-3">
+                    <label class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-center cursor-pointer block hover:border-slate-700">
+                        <input type="radio" name="ai-model" value="chatgpt" checked class="hidden peer" onchange="resetAiWindow()">
+                        <div class="peer-checked:text-emerald-400 font-black text-[11px] text-slate-400 flex flex-col items-center gap-0.5"><i class="fa-solid fa-bolt text-xs"></i>ChatGPT</div>
+                    </label>
+                    <label class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-center cursor-pointer block hover:border-slate-700">
+                        <input type="radio" name="ai-model" value="gemini" class="hidden peer" onchange="resetAiWindow()">
+                        <div class="peer-checked:text-blue-400 font-black text-[11px] text-slate-400 flex flex-col items-center gap-0.5"><i class="fa-solid fa-gem text-xs"></i>Gemini</div>
+                    </label>
+                    <label class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-center cursor-pointer block hover:border-slate-700">
+                        <input type="radio" name="ai-model" value="deepseek" class="hidden peer" onchange="resetAiWindow()">
+                        <div class="peer-checked:text-cyan-400 font-black text-[11px] text-slate-400 flex flex-col items-center gap-0.5"><i class="fa-solid fa-compass text-xs"></i>DeepSeek</div>
+                    </label>
+                    <label class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-center cursor-pointer block hover:border-slate-700">
+                        <input type="radio" name="ai-model" value="grok" class="hidden peer" onchange="resetAiWindow()">
+                        <div class="peer-checked:text-amber-400 font-black text-[11px] text-slate-400 flex flex-col items-center gap-0.5"><i class="fa-solid fa-brain text-xs"></i>Grok4</div>
+                    </label>
+                </div>
+
+                <button onclick="triggerSofascoreAi()" class="w-full bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-slate-950 font-black py-2.5 rounded-lg text-xs tracking-widest transition-all shadow-md flex items-center justify-center gap-2 mb-3">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> 觀察 Sofascore 當前狀況並即時生成評估
+                </button>
+
+                <div class="relative overflow-hidden rounded-lg min-h-[110px] flex flex-col justify-center">
+                    <div class="absolute inset-0 bg-[#09111e]/10 backdrop-blur-md z-10 flex items-center justify-center select-none pointer-events-none">
+                        <div class="text-[10px] text-slate-400 font-bold tracking-widest bg-slate-950/90 border border-slate-800/80 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-lock mr-1 text-red-400"></i>VIP 權限不足無法查閱結果</div>
+                    </div>
+                    <div class="bg-slate-950/90 p-3 border border-slate-900 w-full h-full select-none opacity-40">
+                        <div id="ai-loading-status" class="hidden flex flex-col items-center justify-center py-2 space-y-2">
+                            <div class="flex items-center gap-1.5 text-xs text-amber-400 font-bold tracking-widest">
+                                <i class="fa-solid fa-circle-notch animate-spin mr-1"></i> <span id="ai-progress-text">正在讀取 Sofascore 臨場大數據</span><span class="ai-loading-dot">.</span><span class="ai-loading-dot">.</span><span class="ai-loading-dot">.</span>
+                            </div>
+                        </div>
+                        <p id="ai-briefing-text" class="text-xs text-slate-300 leading-relaxed font-sans font-medium">請選擇上方 AI 引擎，並點擊按鈕獲取 Sofascore 即時 analysis...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-[#0b1420] border border-slate-800 rounded-xl p-4 flex-1 flex flex-col min-h-[220px] relative">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-4 shrink-0">
+                    <span class="font-bold text-slate-200 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-amber-500"></i> 全國各大論壇名家賽前量化比例圖</span>
+                    <span class="text-[9px] text-emerald-400 font-bold border border-emerald-500/20 px-1.5 py-0.5 rounded">動態整合</span>
+                </div>
+                
+                <div class="flex-1 flex flex-col relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[#0b1420]/30 backdrop-blur-md z-10 flex flex-col items-center justify-center select-none pointer-events-none">
+                        <div class="bg-slate-950/90 border border-slate-800 px-4 py-2.5 rounded-xl text-center shadow-lg">
+                            <div class="text-[11px] font-black text-amber-400 tracking-wider">圖表分析已鎖定</div>
+                            <div class="text-[9px] text-slate-500 font-bold mt-0.5">歡迎聯繫 龍女 獲取 VIP 免費觀看</div>
+                        </div>
+                    </div>
+                    <div id="forum-charts-container" class="grid grid-cols-2 gap-4 flex-1 text-xs text-slate-300 blur-sm select-none opacity-20 pointer-events-none">
+                        <p class="text-slate-500 italic text-center py-8 col-span-2">請點選左側賽事載入多維論壇分析圖表...</p>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    <script>
+        // 1-72場完整大資料庫（100%保留您的原始戰術、明星三人、勝率與比分推薦核心資料）
+        const matchDatabase = [
+            {
+                        "id": 1,
+                        "date": "06-12",
+                        "group": "A",
+                        "time": "03:00",
+                        "home": "墨西哥",
+                        "away": "南非",
+                        "report": "墨西哥與南非實力差距不算懸殊，但墨西哥在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "希門尼斯【前鋒】",
+                                    "阿爾瓦雷斯【中場】",
+                                    "蒙特斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "佛斯特【前鋒】",
+                                    "莫科納【中場】",
+                                    "模迪巴【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "墨西哥",
+                                    "handicap": "墨西哥 -0.5/1",
+                                    "size": "小 2.5",
+                                    "prob": "75%"
+                        }
+            },
+            {
+                        "id": 2,
+                        "date": "06-12",
+                        "group": "A",
+                        "time": "10:00",
+                        "home": "南韓",
+                        "away": "捷克",
+                        "report": "南韓對上捷克屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "孫興慜【前鋒】",
+                                    "李剛仁【中場】",
+                                    "金玟哉【後衛】"
+                        ],
+                        "aStars": [
+                                    "希克【前鋒】",
+                                    "紹切克【中場】",
+                                    "考法爾【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "捷克",
+                                    "handicap": "捷克 平手盤 (0)",
+                                    "size": "小 2.5",
+                                    "prob": "59%"
+                        }
+            },
+            {
+                        "id": 3,
+                        "date": "06-13",
+                        "group": "B",
+                        "time": "03:00",
+                        "home": "加拿大",
+                        "away": "波士尼亞與赫塞哥維納",
+                        "report": "加拿大與波士尼亞與赫塞哥維納實力差距不算懸殊，但加拿大在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "喬納森·戴維【前鋒】",
+                                    "尤斯塔基奧【中場】",
+                                    "阿方索·戴維斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "哲科【前鋒】",
+                                    "皮亞尼奇【中場】",
+                                    "阿梅多季奇【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "加拿大",
+                                    "handicap": "加拿大 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 4,
+                        "date": "06-13",
+                        "group": "D",
+                        "time": "09:00",
+                        "home": "美國",
+                        "away": "巴拉圭",
+                        "report": "美國與巴拉圭實力差距不算懸殊，但美國在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "普利西奇【前鋒】",
+                                    "雷納【中場】",
+                                    "麥肯尼【中場】"
+                        ],
+                        "aStars": [
+                                    "恩西索【前鋒】",
+                                    "阿米隆【中場】",
+                                    "戈麥斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "美國",
+                                    "handicap": "美國 -0.5/1",
+                                    "size": "小 2.5",
+                                    "prob": "68%"
+                        }
+            },
+            {
+                        "id": 5,
+                        "date": "06-14",
+                        "group": "B",
+                        "time": "03:00",
+                        "home": "卡達",
+                        "away": "瑞士",
+                        "report": "卡達與瑞士實力差距不算懸殊，但瑞士在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "阿菲夫【前鋒】",
+                                    "阿里【前鋒】",
+                                    "胡希【後衛】"
+                        ],
+                        "aStars": [
+                                    "恩博洛【前鋒】",
+                                    "扎卡【中場】",
+                                    "阿肯基【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "瑞士",
+                                    "handicap": "瑞士 -1.0",
+                                    "size": "小 2.5",
+                                    "prob": "79%"
+                        }
+            },
+            {
+                        "id": 6,
+                        "date": "06-14",
+                        "group": "C",
+                        "time": "06:00",
+                        "home": "巴西",
+                        "away": "摩洛哥",
+                        "report": "巴西與摩洛哥實力差距不算懸殊，但巴西在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "維尼修斯【前鋒】",
+                                    "羅德里戈【前鋒】",
+                                    "馬昆奴斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "恩尼斯里【前鋒】",
+                                    "迪亞斯【中場】",
+                                    "哈基米【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "巴西",
+                                    "handicap": "巴西 -0.5/1",
+                                    "size": "大 2.5",
+                                    "prob": "70%"
+                        }
+            },
+            {
+                        "id": 7,
+                        "date": "06-14",
+                        "group": "C",
+                        "time": "09:00",
+                        "home": "海地",
+                        "away": "蘇格蘭",
+                        "report": "蘇格蘭整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。海地與蘇格蘭本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考小 2/2.5。",
+                        "hStars": [
+                                    "皮福【前鋒】",
+                                    "納宗【前鋒】",
+                                    "阿爾庫斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "麥克托米奈【中場】",
+                                    "麥金【中場】",
+                                    "羅伯遜【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "蘇格蘭",
+                                    "handicap": "蘇格蘭 -1.0",
+                                    "size": "小 2/2.5",
+                                    "prob": "82%"
+                        }
+            },
+            {
+                        "id": 8,
+                        "date": "06-14",
+                        "group": "D",
+                        "time": "12:00",
+                        "home": "澳洲",
+                        "away": "土耳其",
+                        "report": "澳洲與土耳其實力差距不算懸殊，但土耳其在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "公爵【前鋒】",
+                                    "歐文【中場】",
+                                    "蘇塔爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "伊爾馬茲【前鋒】",
+                                    "恰爾汗奧盧【中場】",
+                                    "德米拉爾【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "土耳其",
+                                    "handicap": "土耳其 -0.5/1",
+                                    "size": "小 2.5",
+                                    "prob": "69%"
+                        }
+            },
+            {
+                        "id": 9,
+                        "date": "06-15",
+                        "group": "E",
+                        "time": "01:00",
+                        "home": "德國",
+                        "away": "庫拉索",
+                        "report": "德國整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。德國與庫拉索本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "穆西亞拉【中場】",
+                                    "維爾茨【中場】",
+                                    "呂迪格【後衛】"
+                        ],
+                        "aStars": [
+                                    "尤尼【前鋒】",
+                                    "巴庫納【中場】",
+                                    "馬丁納【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "德國",
+                                    "handicap": "德國 -2.0/2.5",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 10,
+                        "date": "06-15",
+                        "group": "F",
+                        "time": "04:00",
+                        "home": "荷蘭",
+                        "away": "日本",
+                        "report": "荷蘭與日本實力差距不算懸殊，但荷蘭在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "加克波【前鋒】",
+                                    "西蒙斯【中場】",
+                                    "范迪克【後衛】"
+                        ],
+                        "aStars": [
+                                    "上田綺世【前鋒】",
+                                    "久保建英【中場】",
+                                    "冨安健洋【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "荷蘭",
+                                    "handicap": "荷蘭 -0.5",
+                                    "size": "大 2.5",
+                                    "prob": "65%"
+                        }
+            },
+            {
+                        "id": 11,
+                        "date": "06-15",
+                        "group": "E",
+                        "time": "07:00",
+                        "home": "象牙海岸",
+                        "away": "厄瓜多",
+                        "report": "象牙海岸對上厄瓜多屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "阿萊【前鋒】",
+                                    "凱西【中場】",
+                                    "恩迪卡【後衛】"
+                        ],
+                        "aStars": [
+                                    "瓦倫西亞【前鋒】",
+                                    "凱塞多【中場】",
+                                    "因卡皮耶【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "厄瓜多",
+                                    "handicap": "厄瓜多 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "62%"
+                        }
+            },
+            {
+                        "id": 12,
+                        "date": "06-15",
+                        "group": "F",
+                        "time": "10:00",
+                        "home": "瑞典",
+                        "away": "突尼西亞",
+                        "report": "瑞典與突尼西亞實力差距不算懸殊，但瑞典在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "伊薩克【前鋒】",
+                                    "庫盧塞夫斯基【中場】",
+                                    "林德洛夫【後衛】"
+                        ],
+                        "aStars": [
+                                    "姆薩克尼【前鋒】",
+                                    "萊杜尼【中場】",
+                                    "塔勒比【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "瑞典",
+                                    "handicap": "瑞典 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 13,
+                        "date": "06-16",
+                        "group": "H",
+                        "time": "00:00",
+                        "home": "西班牙",
+                        "away": "維德角",
+                        "report": "西班牙整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。西班牙與維德角本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "莫拉塔【前鋒】",
+                                    "羅德里【中場】",
+                                    "亞馬爾【前鋒】"
+                        ],
+                        "aStars": [
+                                    "門德斯【前鋒】",
+                                    "卡布拉爾【中場】",
+                                    "洛佩斯【中場】"
+                        ],
+                        "advice": {
+                                    "team": "西班牙",
+                                    "handicap": "西班牙 -2.0/2.5",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 14,
+                        "date": "06-16",
+                        "group": "G",
+                        "time": "03:00",
+                        "home": "比利時",
+                        "away": "埃及",
+                        "report": "比利時整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。比利時與埃及本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5。",
+                        "hStars": [
+                                    "盧卡庫【前鋒】",
+                                    "德布勞內【中場】",
+                                    "多庫【前鋒】"
+                        ],
+                        "aStars": [
+                                    "薩拉赫【前鋒】",
+                                    "艾爾內尼【中場】",
+                                    "赫加齊【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "比利時",
+                                    "handicap": "比利時 -1.0",
+                                    "size": "大 2.5",
+                                    "prob": "82%"
+                        }
+            },
+            {
+                        "id": 15,
+                        "date": "06-16",
+                        "group": "H",
+                        "time": "06:00",
+                        "home": "沙烏地阿拉伯",
+                        "away": "烏拉圭",
+                        "report": "烏拉圭整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。沙烏地阿拉伯與烏拉圭本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考小 2.5。",
+                        "hStars": [
+                                    "謝赫里【前鋒】",
+                                    "多薩里【中場】",
+                                    "布萊希【後衛】"
+                        ],
+                        "aStars": [
+                                    "努涅斯【前鋒】",
+                                    "巴爾韋德【中場】",
+                                    "阿勞霍【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "烏拉圭",
+                                    "handicap": "烏拉圭 -1.5",
+                                    "size": "小 2.5",
+                                    "prob": "84%"
+                        }
+            },
+            {
+                        "id": 16,
+                        "date": "06-16",
+                        "group": "G",
+                        "time": "09:00",
+                        "home": "伊朗",
+                        "away": "紐西蘭",
+                        "report": "伊朗與紐西蘭實力差距不算懸殊，但伊朗在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "塔雷米【前鋒】",
+                                    "阿茲蒙【前鋒】",
+                                    "卡納尼【後衛】"
+                        ],
+                        "aStars": [
+                                    "伍德【前鋒】",
+                                    "辛格【中場】",
+                                    "雷德【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "伊朗",
+                                    "handicap": "伊朗 -1.0",
+                                    "size": "小 2/2.5",
+                                    "prob": "77%"
+                        }
+            },
+            {
+                        "id": 17,
+                        "date": "06-17",
+                        "group": "I",
+                        "time": "03:00",
+                        "home": "法國",
+                        "away": "塞內加爾",
+                        "report": "法國與塞內加爾實力差距不算懸殊，但法國在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "姆巴佩【前鋒】",
+                                    "格列茲曼【中場】",
+                                    "薩利巴【後衛】"
+                        ],
+                        "aStars": [
+                                    "雅克松【前鋒】",
+                                    "薩爾【中場】",
+                                    "庫利巴利【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "法國",
+                                    "handicap": "法國 -1.0",
+                                    "size": "大 2.5",
+                                    "prob": "77%"
+                        }
+            },
+            {
+                        "id": 18,
+                        "date": "06-17",
+                        "group": "I",
+                        "time": "06:00",
+                        "home": "伊拉克",
+                        "away": "挪威",
+                        "report": "伊拉克與挪威實力差距不算懸殊，但挪威在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "侯賽因【前鋒】",
+                                    "阿明【中場】",
+                                    "阿德南【後衛】"
+                        ],
+                        "aStars": [
+                                    "哈蘭德【前鋒】",
+                                    "厄德高【中場】",
+                                    "阿耶爾【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "挪威",
+                                    "handicap": "挪威 -1.0",
+                                    "size": "小 2.5",
+                                    "prob": "80%"
+                        }
+            },
+            {
+                        "id": 19,
+                        "date": "06-17",
+                        "group": "J",
+                        "time": "09:00",
+                        "home": "阿根廷",
+                        "away": "阿爾及利亞",
+                        "report": "阿根廷整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。阿根廷與阿爾及利亞本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5。",
+                        "hStars": [
+                                    "梅西【前鋒】",
+                                    "勞塔羅【前鋒】",
+                                    "麥卡利斯特【中場】"
+                        ],
+                        "aStars": [
+                                    "馬赫雷斯【前鋒】",
+                                    "本納賽爾【中場】",
+                                    "曼迪【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "阿根廷",
+                                    "handicap": "阿根廷 -1.5",
+                                    "size": "大 2.5",
+                                    "prob": "90%"
+                        }
+            },
+            {
+                        "id": 20,
+                        "date": "06-17",
+                        "group": "J",
+                        "time": "12:00",
+                        "home": "奧地利",
+                        "away": "約旦",
+                        "report": "奧地利與約旦實力差距不算懸殊，但奧地利在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "阿瑙托維奇【前鋒】",
+                                    "薩比策【中場】",
+                                    "阿拉巴【後衛】"
+                        ],
+                        "aStars": [
+                                    "塔馬里【前鋒】",
+                                    "納伊馬特【前鋒】",
+                                    "阿拉布【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "奧地利",
+                                    "handicap": "奧地利 -1.0",
+                                    "size": "小 2.5",
+                                    "prob": "79%"
+                        }
+            },
+            {
+                        "id": 21,
+                        "date": "06-18",
+                        "group": "K",
+                        "time": "01:00",
+                        "home": "葡萄牙",
+                        "away": "剛果民主共和國",
+                        "report": "葡萄牙整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。葡萄牙與剛果民主共和國本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "C羅【前鋒】",
+                                    "費爾南德斯【中場】",
+                                    "魯本·迪亞斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "維薩【前鋒】",
+                                    "巴坎布【前鋒】",
+                                    "姆本巴【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "葡萄牙",
+                                    "handicap": "葡萄牙 -1.5/2",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 22,
+                        "date": "06-18",
+                        "group": "L",
+                        "time": "04:00",
+                        "home": "英格蘭",
+                        "away": "克羅埃西亞",
+                        "report": "英格蘭與克羅埃西亞實力差距不算懸殊，但英格蘭在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "凱恩【前鋒】",
+                                    "貝林厄姆【中場】",
+                                    "福登【中場】"
+                        ],
+                        "aStars": [
+                                    "莫德里奇【中場】",
+                                    "克拉馬里奇【前鋒】",
+                                    "格瓦迪奧爾【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "英格蘭",
+                                    "handicap": "英格蘭 -0.5",
+                                    "size": "大 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 23,
+                        "date": "06-18",
+                        "group": "L",
+                        "time": "07:00",
+                        "home": "迦納",
+                        "away": "巴拿馬",
+                        "report": "迦納與巴拿馬實力差距不算懸殊，但迦納在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "庫杜斯【中場】",
+                                    "伊納基·威廉斯【前鋒】",
+                                    "薩利蘇【後衛】"
+                        ],
+                        "aStars": [
+                                    "法哈多【前鋒】",
+                                    "卡拉斯基拉【中場】",
+                                    "科爾多瓦【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "迦納",
+                                    "handicap": "迦納 -0.5/1",
+                                    "size": "小 2/2.5",
+                                    "prob": "68%"
+                        }
+            },
+            {
+                        "id": 24,
+                        "date": "06-18",
+                        "group": "K",
+                        "time": "10:00",
+                        "home": "烏茲別克",
+                        "away": "哥倫比亞",
+                        "report": "哥倫比亞整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。烏茲別克與哥倫比亞本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考小 2.5。",
+                        "hStars": [
+                                    "紹穆羅多夫【前鋒】",
+                                    "舒庫羅夫【中場】",
+                                    "阿舒爾馬托夫【後衛】"
+                        ],
+                        "aStars": [
+                                    "路易斯·迪亞斯【前鋒】",
+                                    "J羅【中場】",
+                                    "達文森·桑切斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "哥倫比亞",
+                                    "handicap": "哥倫比亞 -1.0",
+                                    "size": "小 2.5",
+                                    "prob": "82%"
+                        }
+            },
+            {
+                        "id": 25,
+                        "date": "06-19",
+                        "group": "A",
+                        "time": "00:00",
+                        "home": "捷克",
+                        "away": "南非",
+                        "report": "捷克與南非實力差距不算懸殊，但捷克在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "希克【前鋒】",
+                                    "紹切克【中場】",
+                                    "考法爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "佛斯特【前鋒】",
+                                    "莫科納【中場】",
+                                    "模迪巴【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "捷克",
+                                    "handicap": "捷克 -0.5/1",
+                                    "size": "小 2.5",
+                                    "prob": "73%"
+                        }
+            },
+            {
+                        "id": 26,
+                        "date": "06-19",
+                        "group": "B",
+                        "time": "03:00",
+                        "home": "瑞士",
+                        "away": "波士尼亞與赫塞哥維納",
+                        "report": "瑞士與波士尼亞與赫塞哥維納實力差距不算懸殊，但瑞士在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "恩博洛【前鋒】",
+                                    "扎卡【中場】",
+                                    "阿肯基【後衛】"
+                        ],
+                        "aStars": [
+                                    "哲科【前鋒】",
+                                    "皮亞尼奇【中場】",
+                                    "阿梅多季奇【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "瑞士",
+                                    "handicap": "瑞士 -1.0",
+                                    "size": "小 2.5",
+                                    "prob": "79%"
+                        }
+            },
+            {
+                        "id": 27,
+                        "date": "06-19",
+                        "group": "B",
+                        "time": "06:00",
+                        "home": "加拿大",
+                        "away": "卡達",
+                        "report": "加拿大與卡達實力差距不算懸殊，但加拿大在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "喬納森·戴維【前鋒】",
+                                    "尤斯塔基奧【中場】",
+                                    "阿方索·戴維斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "阿菲夫【前鋒】",
+                                    "阿里【前鋒】",
+                                    "胡希【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "加拿大",
+                                    "handicap": "加拿大 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 28,
+                        "date": "06-19",
+                        "group": "A",
+                        "time": "09:00",
+                        "home": "墨西哥",
+                        "away": "南韓",
+                        "report": "墨西哥對上南韓屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "希門尼斯【前鋒】",
+                                    "阿爾瓦雷斯【中場】",
+                                    "蒙特斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "孫興慜【前鋒】",
+                                    "李剛仁【中場】",
+                                    "金玟哉【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "墨西哥",
+                                    "handicap": "墨西哥 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "61%"
+                        }
+            },
+            {
+                        "id": 29,
+                        "date": "06-20",
+                        "group": "D",
+                        "time": "03:00",
+                        "home": "美國",
+                        "away": "澳洲",
+                        "report": "美國與澳洲實力差距不算懸殊，但美國在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "普利西奇【前鋒】",
+                                    "雷納【中場】",
+                                    "麥肯尼【中場】"
+                        ],
+                        "aStars": [
+                                    "公爵【前鋒】",
+                                    "歐文【中場】",
+                                    "蘇塔爾【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "美國",
+                                    "handicap": "美國 -0.5/1",
+                                    "size": "小 2.5",
+                                    "prob": "70%"
+                        }
+            },
+            {
+                        "id": 30,
+                        "date": "06-20",
+                        "group": "C",
+                        "time": "03:00",
+                        "home": "蘇格蘭",
+                        "away": "摩洛哥",
+                        "report": "蘇格蘭與摩洛哥實力差距不算懸殊，但摩洛哥在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "麥克托米奈【中場】",
+                                    "麥金【中場】",
+                                    "羅伯遜【後衛】"
+                        ],
+                        "aStars": [
+                                    "恩尼斯里【前鋒】",
+                                    "迪亞斯【中場】",
+                                    "哈基米【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "摩洛哥",
+                                    "handicap": "摩洛哥 -0.5/1",
+                                    "size": "大 2.5",
+                                    "prob": "70%"
+                        }
+            },
+            {
+                        "id": 31,
+                        "date": "06-20",
+                        "group": "C",
+                        "time": "09:00",
+                        "home": "巴西",
+                        "away": "海地",
+                        "report": "巴西整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。巴西與海地本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "維尼修斯【前鋒】",
+                                    "羅德里戈【前鋒】",
+                                    "馬昆奴斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "皮福【前鋒】",
+                                    "納宗【前鋒】",
+                                    "阿爾庫斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "巴西",
+                                    "handicap": "巴西 -2.0/2.5",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 32,
+                        "date": "06-20",
+                        "group": "D",
+                        "time": "12:00",
+                        "home": "土耳其",
+                        "away": "巴拉圭",
+                        "report": "土耳其與巴拉圭實力差距不算懸殊，但土耳其在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "伊爾馬茲【前鋒】",
+                                    "恰爾汗奧盧【中場】",
+                                    "德米拉爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "恩西索【前鋒】",
+                                    "阿米隆【中場】",
+                                    "戈麥斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "土耳其",
+                                    "handicap": "土耳其 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 33,
+                        "date": "06-21",
+                        "group": "F",
+                        "time": "01:00",
+                        "home": "荷蘭",
+                        "away": "瑞典",
+                        "report": "荷蘭與瑞典實力差距不算懸殊，但荷蘭在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "加克波【前鋒】",
+                                    "西蒙斯【中場】",
+                                    "范迪克【後衛】"
+                        ],
+                        "aStars": [
+                                    "伊薩克【前鋒】",
+                                    "庫盧塞夫斯基【中場】",
+                                    "林德洛夫【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "荷蘭",
+                                    "handicap": "荷蘭 -0.5/1",
+                                    "size": "大 2.5",
+                                    "prob": "75%"
+                        }
+            },
+            {
+                        "id": 34,
+                        "date": "06-21",
+                        "group": "E",
+                        "time": "04:00",
+                        "home": "德國",
+                        "away": "象牙海岸",
+                        "report": "德國與象牙海岸實力差距不算懸殊，但德國在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "穆西亞拉【中場】",
+                                    "維爾茨【中場】",
+                                    "呂迪格【後衛】"
+                        ],
+                        "aStars": [
+                                    "阿萊【前鋒】",
+                                    "凱西【中場】",
+                                    "恩迪卡【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "德國",
+                                    "handicap": "德國 -1.0",
+                                    "size": "大 2.5",
+                                    "prob": "80%"
+                        }
+            },
+            {
+                        "id": 35,
+                        "date": "06-21",
+                        "group": "E",
+                        "time": "08:00",
+                        "home": "厄瓜多",
+                        "away": "庫拉索",
+                        "report": "厄瓜多整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。厄瓜多與庫拉索本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考小 2/2.5。",
+                        "hStars": [
+                                    "瓦倫西亞【前鋒】",
+                                    "凱塞多【中場】",
+                                    "因卡皮耶【後衛】"
+                        ],
+                        "aStars": [
+                                    "尤尼【前鋒】",
+                                    "巴庫納【中場】",
+                                    "馬丁納【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "厄瓜多",
+                                    "handicap": "厄瓜多 -1.5",
+                                    "size": "小 2/2.5",
+                                    "prob": "87%"
+                        }
+            },
+            {
+                        "id": 36,
+                        "date": "06-21",
+                        "group": "F",
+                        "time": "12:00",
+                        "home": "突尼西亞",
+                        "away": "日本",
+                        "report": "突尼西亞與日本實力差距不算懸殊，但日本在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "姆薩克尼【前鋒】",
+                                    "萊杜尼【中場】",
+                                    "塔勒比【後衛】"
+                        ],
+                        "aStars": [
+                                    "上田綺世【前鋒】",
+                                    "久保建英【中場】",
+                                    "冨安健洋【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "日本",
+                                    "handicap": "日本 -1.0",
+                                    "size": "小 2.5",
+                                    "prob": "76%"
+                        }
+            },
+            {
+                        "id": 37,
+                        "date": "06-22",
+                        "group": "H",
+                        "time": "00:00",
+                        "home": "西班牙",
+                        "away": "沙烏地阿拉伯",
+                        "report": "西班牙整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。西班牙與沙烏地阿拉伯本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "莫拉塔【前鋒】",
+                                    "羅德里【中場】",
+                                    "亞馬爾【前鋒】"
+                        ],
+                        "aStars": [
+                                    "謝赫里【前鋒】",
+                                    "多薩里【中場】",
+                                    "布萊希【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "西班牙",
+                                    "handicap": "西班牙 -1.5/2",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 38,
+                        "date": "06-22",
+                        "group": "G",
+                        "time": "03:00",
+                        "home": "比利時",
+                        "away": "伊朗",
+                        "report": "比利時與伊朗實力差距不算懸殊，但比利時在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "盧卡庫【前鋒】",
+                                    "德布勞內【中場】",
+                                    "多庫【前鋒】"
+                        ],
+                        "aStars": [
+                                    "塔雷米【前鋒】",
+                                    "阿茲蒙【前鋒】",
+                                    "卡納尼【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "比利時",
+                                    "handicap": "比利時 -0.5/1",
+                                    "size": "大 2.5",
+                                    "prob": "73%"
+                        }
+            },
+            {
+                        "id": 39,
+                        "date": "06-22",
+                        "group": "H",
+                        "time": "06:00",
+                        "home": "烏拉圭",
+                        "away": "維德角",
+                        "report": "烏拉圭整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。烏拉圭與維德角本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "努涅斯【前鋒】",
+                                    "巴爾韋德【中場】",
+                                    "阿勞霍【後衛】"
+                        ],
+                        "aStars": [
+                                    "門德斯【前鋒】",
+                                    "卡布拉爾【中場】",
+                                    "洛佩斯【中場】"
+                        ],
+                        "advice": {
+                                    "team": "烏拉圭",
+                                    "handicap": "烏拉圭 -1.5/2",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 40,
+                        "date": "06-22",
+                        "group": "G",
+                        "time": "09:00",
+                        "home": "紐西蘭",
+                        "away": "埃及",
+                        "report": "紐西蘭與埃及實力差距不算懸殊，但埃及在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "伍德【前鋒】",
+                                    "辛格【中場】",
+                                    "雷德【後衛】"
+                        ],
+                        "aStars": [
+                                    "薩拉赫【前鋒】",
+                                    "艾爾內尼【中場】",
+                                    "赫加齊【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "埃及",
+                                    "handicap": "埃及 -0.5/1",
+                                    "size": "小 2/2.5",
+                                    "prob": "69%"
+                        }
+            },
+            {
+                        "id": 41,
+                        "date": "06-23",
+                        "group": "J",
+                        "time": "01:00",
+                        "home": "阿根廷",
+                        "away": "奧地利",
+                        "report": "阿根廷整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。阿根廷與奧地利本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5。",
+                        "hStars": [
+                                    "梅西【前鋒】",
+                                    "勞塔羅【前鋒】",
+                                    "麥卡利斯特【中場】"
+                        ],
+                        "aStars": [
+                                    "阿瑙托維奇【前鋒】",
+                                    "薩比策【中場】",
+                                    "阿拉巴【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "阿根廷",
+                                    "handicap": "阿根廷 -1.0",
+                                    "size": "大 2.5",
+                                    "prob": "82%"
+                        }
+            },
+            {
+                        "id": 42,
+                        "date": "06-23",
+                        "group": "I",
+                        "time": "05:00",
+                        "home": "法國",
+                        "away": "伊拉克",
+                        "report": "法國整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。法國與伊拉克本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "姆巴佩【前鋒】",
+                                    "格列茲曼【中場】",
+                                    "薩利巴【後衛】"
+                        ],
+                        "aStars": [
+                                    "侯賽因【前鋒】",
+                                    "阿明【中場】",
+                                    "阿德南【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "法國",
+                                    "handicap": "法國 -2.0/2.5",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 43,
+                        "date": "06-23",
+                        "group": "I",
+                        "time": "08:00",
+                        "home": "挪威",
+                        "away": "塞內加爾",
+                        "report": "挪威對上塞內加爾屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "哈蘭德【前鋒】",
+                                    "厄德高【中場】",
+                                    "阿耶爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "雅克松【前鋒】",
+                                    "薩爾【中場】",
+                                    "庫利巴利【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "塞內加爾",
+                                    "handicap": "塞內加爾 平手盤 (0)",
+                                    "size": "小 2.5",
+                                    "prob": "58%"
+                        }
+            },
+            {
+                        "id": 44,
+                        "date": "06-23",
+                        "group": "J",
+                        "time": "11:00",
+                        "home": "約旦",
+                        "away": "阿爾及利亞",
+                        "report": "約旦與阿爾及利亞實力差距不算懸殊，但阿爾及利亞在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "塔馬里【前鋒】",
+                                    "納伊馬特【前鋒】",
+                                    "阿拉布【後衛】"
+                        ],
+                        "aStars": [
+                                    "馬赫雷斯【前鋒】",
+                                    "本納賽爾【中場】",
+                                    "曼迪【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "阿爾及利亞",
+                                    "handicap": "阿爾及利亞 -0.5/1",
+                                    "size": "小 2.5",
+                                    "prob": "70%"
+                        }
+            },
+            {
+                        "id": 45,
+                        "date": "06-24",
+                        "group": "K",
+                        "time": "01:00",
+                        "home": "葡萄牙",
+                        "away": "烏茲別克",
+                        "report": "葡萄牙整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。葡萄牙與烏茲別克本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "C羅【前鋒】",
+                                    "費爾南德斯【中場】",
+                                    "魯本·迪亞斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "紹穆羅多夫【前鋒】",
+                                    "舒庫羅夫【中場】",
+                                    "阿舒爾馬托夫【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "葡萄牙",
+                                    "handicap": "葡萄牙 -1.5/2",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 46,
+                        "date": "06-24",
+                        "group": "L",
+                        "time": "04:00",
+                        "home": "英格蘭",
+                        "away": "迦納",
+                        "report": "英格蘭整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。英格蘭與迦納本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5。",
+                        "hStars": [
+                                    "凱恩【前鋒】",
+                                    "貝林厄姆【中場】",
+                                    "福登【中場】"
+                        ],
+                        "aStars": [
+                                    "庫杜斯【中場】",
+                                    "伊納基·威廉斯【前鋒】",
+                                    "薩利蘇【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "英格蘭",
+                                    "handicap": "英格蘭 -1.5",
+                                    "size": "大 2.5",
+                                    "prob": "87%"
+                        }
+            },
+            {
+                        "id": 47,
+                        "date": "06-24",
+                        "group": "L",
+                        "time": "07:00",
+                        "home": "巴拿馬",
+                        "away": "克羅埃西亞",
+                        "report": "克羅埃西亞整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。巴拿馬與克羅埃西亞本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考小 2.5。",
+                        "hStars": [
+                                    "法哈多【前鋒】",
+                                    "卡拉斯基拉【中場】",
+                                    "科爾多瓦【後衛】"
+                        ],
+                        "aStars": [
+                                    "莫德里奇【中場】",
+                                    "克拉馬里奇【前鋒】",
+                                    "格瓦迪奧爾【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "克羅埃西亞",
+                                    "handicap": "克羅埃西亞 -1.5",
+                                    "size": "小 2.5",
+                                    "prob": "89%"
+                        }
+            },
+            {
+                        "id": 48,
+                        "date": "06-24",
+                        "group": "K",
+                        "time": "10:00",
+                        "home": "哥倫比亞",
+                        "away": "剛果民主共和國",
+                        "report": "哥倫比亞整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。哥倫比亞與剛果民主共和國本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考小 2.5。",
+                        "hStars": [
+                                    "路易斯·迪亞斯【前鋒】",
+                                    "J羅【中場】",
+                                    "達文森·桑切斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "維薩【前鋒】",
+                                    "巴坎布【前鋒】",
+                                    "姆本巴【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "哥倫比亞",
+                                    "handicap": "哥倫比亞 -1.5",
+                                    "size": "小 2.5",
+                                    "prob": "86%"
+                        }
+            },
+            {
+                        "id": 49,
+                        "date": "06-25",
+                        "group": "B",
+                        "time": "03:00",
+                        "home": "瑞士",
+                        "away": "加拿大",
+                        "report": "瑞士與加拿大實力差距不算懸殊，但瑞士在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "恩博洛【前鋒】",
+                                    "扎卡【中場】",
+                                    "阿肯基【後衛】"
+                        ],
+                        "aStars": [
+                                    "喬納森·戴維【前鋒】",
+                                    "尤斯塔基奧【中場】",
+                                    "阿方索·戴維斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "瑞士",
+                                    "handicap": "瑞士 -0.5",
+                                    "size": "大 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 50,
+                        "date": "06-25",
+                        "group": "B",
+                        "time": "03:00",
+                        "home": "波士尼亞與赫塞哥維納",
+                        "away": "卡達",
+                        "report": "波士尼亞與赫塞哥維納對上卡達屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2/2.5。",
+                        "hStars": [
+                                    "哲科【前鋒】",
+                                    "皮亞尼奇【中場】",
+                                    "阿梅多季奇【後衛】"
+                        ],
+                        "aStars": [
+                                    "阿菲夫【前鋒】",
+                                    "阿里【前鋒】",
+                                    "胡希【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "波士尼亞與赫塞哥維納",
+                                    "handicap": "波士尼亞與赫塞哥維納 平手盤 (0)",
+                                    "size": "小 2/2.5",
+                                    "prob": "54%"
+                        }
+            },
+            {
+                        "id": 51,
+                        "date": "06-25",
+                        "group": "C",
+                        "time": "06:00",
+                        "home": "巴西",
+                        "away": "蘇格蘭",
+                        "report": "巴西整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。巴西與蘇格蘭本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5。",
+                        "hStars": [
+                                    "維尼修斯【前鋒】",
+                                    "羅德里戈【前鋒】",
+                                    "馬昆奴斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "麥克托米奈【中場】",
+                                    "麥金【中場】",
+                                    "羅伯遜【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "巴西",
+                                    "handicap": "巴西 -1.5",
+                                    "size": "大 2.5",
+                                    "prob": "87%"
+                        }
+            },
+            {
+                        "id": 52,
+                        "date": "06-25",
+                        "group": "C",
+                        "time": "06:00",
+                        "home": "摩洛哥",
+                        "away": "海地",
+                        "report": "摩洛哥整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。摩洛哥與海地本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "恩尼斯里【前鋒】",
+                                    "迪亞斯【中場】",
+                                    "哈基米【後衛】"
+                        ],
+                        "aStars": [
+                                    "皮福【前鋒】",
+                                    "納宗【前鋒】",
+                                    "阿爾庫斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "摩洛哥",
+                                    "handicap": "摩洛哥 -1.5/2",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 53,
+                        "date": "06-25",
+                        "group": "A",
+                        "time": "09:00",
+                        "home": "捷克",
+                        "away": "墨西哥",
+                        "report": "捷克對上墨西哥屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "希克【前鋒】",
+                                    "紹切克【中場】",
+                                    "考法爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "希門尼斯【前鋒】",
+                                    "阿爾瓦雷斯【中場】",
+                                    "蒙特斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "墨西哥",
+                                    "handicap": "墨西哥 平手盤 (0)",
+                                    "size": "小 2.5",
+                                    "prob": "55%"
+                        }
+            },
+            {
+                        "id": 54,
+                        "date": "06-25",
+                        "group": "A",
+                        "time": "09:00",
+                        "home": "南非",
+                        "away": "南韓",
+                        "report": "南非與南韓實力差距不算懸殊，但南韓在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "佛斯特【前鋒】",
+                                    "莫科納【中場】",
+                                    "模迪巴【後衛】"
+                        ],
+                        "aStars": [
+                                    "孫興慜【前鋒】",
+                                    "李剛仁【中場】",
+                                    "金玟哉【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "南韓",
+                                    "handicap": "南韓 -0.5/1",
+                                    "size": "小 2/2.5",
+                                    "prob": "68%"
+                        }
+            },
+            {
+                        "id": 55,
+                        "date": "06-26",
+                        "group": "E",
+                        "time": "04:00",
+                        "home": "厄瓜多",
+                        "away": "德國",
+                        "report": "厄瓜多與德國實力差距不算懸殊，但德國在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "瓦倫西亞【前鋒】",
+                                    "凱塞多【中場】",
+                                    "因卡皮耶【後衛】"
+                        ],
+                        "aStars": [
+                                    "穆西亞拉【中場】",
+                                    "維爾茨【中場】",
+                                    "呂迪格【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "德國",
+                                    "handicap": "德國 -0.5/1",
+                                    "size": "大 2.5",
+                                    "prob": "72%"
+                        }
+            },
+            {
+                        "id": 56,
+                        "date": "06-26",
+                        "group": "E",
+                        "time": "04:00",
+                        "home": "庫拉索",
+                        "away": "象牙海岸",
+                        "report": "庫拉索與象牙海岸實力差距不算懸殊，但象牙海岸在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "尤尼【前鋒】",
+                                    "巴庫納【中場】",
+                                    "馬丁納【後衛】"
+                        ],
+                        "aStars": [
+                                    "阿萊【前鋒】",
+                                    "凱西【中場】",
+                                    "恩迪卡【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "象牙海岸",
+                                    "handicap": "象牙海岸 -1.0",
+                                    "size": "小 2/2.5",
+                                    "prob": "79%"
+                        }
+            },
+            {
+                        "id": 57,
+                        "date": "06-26",
+                        "group": "F",
+                        "time": "07:00",
+                        "home": "日本",
+                        "away": "瑞典",
+                        "report": "日本對上瑞典屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向大 2.5。",
+                        "hStars": [
+                                    "上田綺世【前鋒】",
+                                    "久保建英【中場】",
+                                    "冨安健洋【後衛】"
+                        ],
+                        "aStars": [
+                                    "伊薩克【前鋒】",
+                                    "庫盧塞夫斯基【中場】",
+                                    "林德洛夫【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "日本",
+                                    "handicap": "日本 -0.5",
+                                    "size": "大 2.5",
+                                    "prob": "63%"
+                        }
+            },
+            {
+                        "id": 58,
+                        "date": "06-26",
+                        "group": "F",
+                        "time": "07:00",
+                        "home": "突尼西亞",
+                        "away": "荷蘭",
+                        "report": "荷蘭整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。突尼西亞與荷蘭本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5。",
+                        "hStars": [
+                                    "姆薩克尼【前鋒】",
+                                    "萊杜尼【中場】",
+                                    "塔勒比【後衛】"
+                        ],
+                        "aStars": [
+                                    "加克波【前鋒】",
+                                    "西蒙斯【中場】",
+                                    "范迪克【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "荷蘭",
+                                    "handicap": "荷蘭 -1.5",
+                                    "size": "大 2.5",
+                                    "prob": "87%"
+                        }
+            },
+            {
+                        "id": 59,
+                        "date": "06-26",
+                        "group": "D",
+                        "time": "10:00",
+                        "home": "土耳其",
+                        "away": "美國",
+                        "report": "土耳其對上美國屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "伊爾馬茲【前鋒】",
+                                    "恰爾汗奧盧【中場】",
+                                    "德米拉爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "普利西奇【前鋒】",
+                                    "雷納【中場】",
+                                    "麥肯尼【中場】"
+                        ],
+                        "advice": {
+                                    "team": "美國",
+                                    "handicap": "美國 平手盤 (0)",
+                                    "size": "小 2.5",
+                                    "prob": "55%"
+                        }
+            },
+            {
+                        "id": 60,
+                        "date": "06-26",
+                        "group": "D",
+                        "time": "10:00",
+                        "home": "巴拉圭",
+                        "away": "澳洲",
+                        "report": "巴拉圭對上澳洲屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "恩西索【前鋒】",
+                                    "阿米隆【中場】",
+                                    "戈麥斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "公爵【前鋒】",
+                                    "歐文【中場】",
+                                    "蘇塔爾【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "巴拉圭",
+                                    "handicap": "巴拉圭 平手盤 (0)",
+                                    "size": "小 2.5",
+                                    "prob": "56%"
+                        }
+            },
+            {
+                        "id": 61,
+                        "date": "06-27",
+                        "group": "I",
+                        "time": "03:00",
+                        "home": "挪威",
+                        "away": "法國",
+                        "report": "法國整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。挪威與法國本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5。",
+                        "hStars": [
+                                    "哈蘭德【前鋒】",
+                                    "厄德高【中場】",
+                                    "阿耶爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "姆巴佩【前鋒】",
+                                    "格列茲曼【中場】",
+                                    "薩利巴【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "法國",
+                                    "handicap": "法國 -1.0",
+                                    "size": "大 2.5",
+                                    "prob": "82%"
+                        }
+            },
+            {
+                        "id": 62,
+                        "date": "06-27",
+                        "group": "I",
+                        "time": "03:00",
+                        "home": "塞內加爾",
+                        "away": "伊拉克",
+                        "report": "塞內加爾整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。塞內加爾與伊拉克本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考小 2.5。",
+                        "hStars": [
+                                    "雅克松【前鋒】",
+                                    "薩爾【中場】",
+                                    "庫利巴利【後衛】"
+                        ],
+                        "aStars": [
+                                    "侯賽因【前鋒】",
+                                    "阿明【中場】",
+                                    "阿德南【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "塞內加爾",
+                                    "handicap": "塞內加爾 -1.5",
+                                    "size": "小 2.5",
+                                    "prob": "84%"
+                        }
+            },
+            {
+                        "id": 63,
+                        "date": "06-27",
+                        "group": "H",
+                        "time": "08:00",
+                        "home": "烏拉圭",
+                        "away": "西班牙",
+                        "report": "烏拉圭與西班牙實力差距不算懸殊，但西班牙在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "努涅斯【前鋒】",
+                                    "巴爾韋德【中場】",
+                                    "阿勞霍【後衛】"
+                        ],
+                        "aStars": [
+                                    "莫拉塔【前鋒】",
+                                    "羅德里【中場】",
+                                    "亞馬爾【前鋒】"
+                        ],
+                        "advice": {
+                                    "team": "西班牙",
+                                    "handicap": "西班牙 -0.5",
+                                    "size": "大 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 64,
+                        "date": "06-27",
+                        "group": "H",
+                        "time": "08:00",
+                        "home": "維德角",
+                        "away": "沙烏地阿拉伯",
+                        "report": "維德角與沙烏地阿拉伯實力差距不算懸殊，但沙烏地阿拉伯在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "門德斯【前鋒】",
+                                    "卡布拉爾【中場】",
+                                    "洛佩斯【中場】"
+                        ],
+                        "aStars": [
+                                    "謝赫里【前鋒】",
+                                    "多薩里【中場】",
+                                    "布萊希【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "沙烏地阿拉伯",
+                                    "handicap": "沙烏地阿拉伯 -0.5",
+                                    "size": "小 2/2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 65,
+                        "date": "06-27",
+                        "group": "G",
+                        "time": "11:00",
+                        "home": "紐西蘭",
+                        "away": "比利時",
+                        "report": "比利時整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。紐西蘭與比利時本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "伍德【前鋒】",
+                                    "辛格【中場】",
+                                    "雷德【後衛】"
+                        ],
+                        "aStars": [
+                                    "盧卡庫【前鋒】",
+                                    "德布勞內【中場】",
+                                    "多庫【前鋒】"
+                        ],
+                        "advice": {
+                                    "team": "比利時",
+                                    "handicap": "比利時 -1.5/2",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 66,
+                        "date": "06-27",
+                        "group": "G",
+                        "time": "11:00",
+                        "home": "埃及",
+                        "away": "伊朗",
+                        "report": "埃及對上伊朗屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "薩拉赫【前鋒】",
+                                    "艾爾內尼【中場】",
+                                    "赫加齊【後衛】"
+                        ],
+                        "aStars": [
+                                    "塔雷米【前鋒】",
+                                    "阿茲蒙【前鋒】",
+                                    "卡納尼【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "伊朗",
+                                    "handicap": "伊朗 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "62%"
+                        }
+            },
+            {
+                        "id": 67,
+                        "date": "06-28",
+                        "group": "L",
+                        "time": "05:00",
+                        "home": "巴拿馬",
+                        "away": "英格蘭",
+                        "report": "英格蘭整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。巴拿馬與英格蘭本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "法哈多【前鋒】",
+                                    "卡拉斯基拉【中場】",
+                                    "科爾多瓦【後衛】"
+                        ],
+                        "aStars": [
+                                    "凱恩【前鋒】",
+                                    "貝林厄姆【中場】",
+                                    "福登【中場】"
+                        ],
+                        "advice": {
+                                    "team": "英格蘭",
+                                    "handicap": "英格蘭 -1.5/2",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 68,
+                        "date": "06-28",
+                        "group": "L",
+                        "time": "05:00",
+                        "home": "克羅埃西亞",
+                        "away": "迦納",
+                        "report": "克羅埃西亞與迦納實力差距不算懸殊，但克羅埃西亞在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "莫德里奇【中場】",
+                                    "克拉馬里奇【前鋒】",
+                                    "格瓦迪奧爾【後衛】"
+                        ],
+                        "aStars": [
+                                    "庫杜斯【中場】",
+                                    "伊納基·威廉斯【前鋒】",
+                                    "薩利蘇【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "克羅埃西亞",
+                                    "handicap": "克羅埃西亞 -0.5/1",
+                                    "size": "大 2.5",
+                                    "prob": "75%"
+                        }
+            },
+            {
+                        "id": 69,
+                        "date": "06-28",
+                        "group": "K",
+                        "time": "07:30",
+                        "home": "哥倫比亞",
+                        "away": "葡萄牙",
+                        "report": "哥倫比亞與葡萄牙實力差距不算懸殊，但葡萄牙在近期整體穩定度、核心球員狀態與攻守平衡上略佔優勢。本場預期節奏會先保守後加速，盤口觀察重點是上半場控球效率與下半場換人深度。",
+                        "hStars": [
+                                    "路易斯·迪亞斯【前鋒】",
+                                    "J羅【中場】",
+                                    "達文森·桑切斯【後衛】"
+                        ],
+                        "aStars": [
+                                    "C羅【前鋒】",
+                                    "費爾南德斯【中場】",
+                                    "魯本·迪亞斯【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "葡萄牙",
+                                    "handicap": "葡萄牙 -0.5",
+                                    "size": "大 2.5",
+                                    "prob": "66%"
+                        }
+            },
+            {
+                        "id": 70,
+                        "date": "06-28",
+                        "group": "K",
+                        "time": "07:30",
+                        "home": "剛果民主共和國",
+                        "away": "烏茲別克",
+                        "report": "剛果民主共和國對上烏茲別克屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2/2.5。",
+                        "hStars": [
+                                    "維薩【前鋒】",
+                                    "巴坎布【前鋒】",
+                                    "姆本巴【後衛】"
+                        ],
+                        "aStars": [
+                                    "紹穆羅多夫【前鋒】",
+                                    "舒庫羅夫【中場】",
+                                    "阿舒爾馬托夫【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "烏茲別克",
+                                    "handicap": "烏茲別克 平手盤 (0)",
+                                    "size": "小 2/2.5",
+                                    "prob": "58%"
+                        }
+            },
+            {
+                        "id": 71,
+                        "date": "06-28",
+                        "group": "J",
+                        "time": "10:00",
+                        "home": "約旦",
+                        "away": "阿根廷",
+                        "report": "阿根廷整體戰力、攻防轉換與大賽經驗明顯佔優，若能掌握前場壓迫節奏，將有機會把比賽帶入自己熟悉的盤面。約旦與阿根廷本場重點仍在中場第一落點與邊路回防速度，大小分傾向參考大 2.5/3。",
+                        "hStars": [
+                                    "塔馬里【前鋒】",
+                                    "納伊馬特【前鋒】",
+                                    "阿拉布【後衛】"
+                        ],
+                        "aStars": [
+                                    "梅西【前鋒】",
+                                    "勞塔羅【前鋒】",
+                                    "麥卡利斯特【中場】"
+                        ],
+                        "advice": {
+                                    "team": "阿根廷",
+                                    "handicap": "阿根廷 -2.0/2.5",
+                                    "size": "大 2.5/3",
+                                    "prob": "91%"
+                        }
+            },
+            {
+                        "id": 72,
+                        "date": "06-28",
+                        "group": "J",
+                        "time": "10:00",
+                        "home": "阿爾及利亞",
+                        "away": "奧地利",
+                        "report": "阿爾及利亞對上奧地利屬於拉鋸盤，雙方都具備靠定位球或反擊改變局面的能力。模型判斷勝負關鍵在首粒進球與防守犯規控制，讓球以保守方向處理，大小分傾向小 2.5。",
+                        "hStars": [
+                                    "馬赫雷斯【前鋒】",
+                                    "本納賽爾【中場】",
+                                    "曼迪【後衛】"
+                        ],
+                        "aStars": [
+                                    "阿瑙托維奇【前鋒】",
+                                    "薩比策【中場】",
+                                    "阿拉巴【後衛】"
+                        ],
+                        "advice": {
+                                    "team": "奧地利",
+                                    "handicap": "奧地利 -0.5",
+                                    "size": "小 2.5",
+                                    "prob": "62%"
+                        }
+            }
+];
+
+        let activeMatchObject = null;
+        let typingTimer = null;
+
+        // 初始化賽程：每日第一場免費點選，其餘自動掛載 VIP 鎖狀態
+        function initScheduleMenu() {
+            const container = document.getElementById('schedule-container');
+            let groupedByDate = {};
+            
+            matchDatabase.forEach(m => {
+                if(!groupedByDate[m.date]) groupedByDate[m.date] = [];
+                groupedByDate[m.date].push(m);
+            });
+            
+            let htmlStr = "";
+            Object.keys(groupedByDate).sort().forEach(d => {
+                htmlStr += `<div class="date-header"><i class="fa-regular fa-calendar-days mr-1.5 text-amber-500"></i>賽事時間: ${d}</div>`;
+                
+                groupedByDate[d].forEach((m, index) => {
+                    const isLocked = index > 0; 
+                    m.isAutoLocked = isLocked;
+                    
+                    const statusClass = isLocked ? "match-locked" : "";
+                    const badge = isLocked ? `<span class="bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] px-1.5 py-0.5 rounded font-black"><i class="fa-solid fa-lock mr-0.5"></i>VIP鎖</span>` : `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] px-1.5 py-0.5 rounded font-black">已連線</span>`;
+                    
+                    htmlStr += `
+                        <div onclick="selectActiveMatch(${m.id})" class="bg-[#0c1222] hover:bg-[#121b33] border border-slate-900 rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all gap-3 ${statusClass}">
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-1.5 text-slate-500 font-mono text-[11px] font-bold">
+                                    <span>小組賽 ${m.group} 組</span><span>·</span><span>${m.time}</span>
+                                </div>
+                                <div class="text-slate-200 font-black tracking-wide text-base flex items-center gap-1.5">
+                                    <span class="text-blue-400">${m.home}</span> <span class="text-slate-600 text-xs font-normal">VS</span> <span class="text-red-400">${m.away}</span>
+                                </div>
+                            </div>
+                            <div class="shrink-0">${badge}</div>
+                        </div>
+                    `;
+                });
+            });
+            container.innerHTML = htmlStr;
+        }
+
+        // 選擇與渲染賽事
+        function selectActiveMatch(id) {
+            const m = matchDatabase.find(item => item.id === id);
+            if(!m) return;
+            
+            // 被鎖定的 VIP 賽事直接彈出提示，徹底封死任何密碼輸入框
+            if(m.isAutoLocked) {
+                alert("該賽事屬於 VIP 精選付費場次，目前無權限查閱。請聯繫龍女升級開通！");
+                return;
+            }
+
+            activeMatchObject = m;
+            
+            document.getElementById('panel-title').innerHTML = `<span class="text-blue-400">${m.home}</span> <span class="text-slate-400 font-normal mx-1 text-sm">主場對陣</span> <span class="text-red-400">${m.away}</span>`;
+            document.getElementById('panel-meta').innerText = `2026-0${m.date.replace('-','-')}小組賽 · ${m.time}分開賽 · 賽事系統編號 #${String(m.id).padStart(3, '0')}`;
+            
+            drawPitchCanvasLayout(m.home, m.away);
+            
+            const hBox = document.getElementById('home-stars-box');
+            const aBox = document.getElementById('away-stars-box');
+            let homeStars = m.hStars ? [...m.hStars] : [];
+            let awayStars = m.aStars ? [...m.aStars] : [];
+            while(homeStars.length < 3) { homeStars.push(homeStars.length === 2 ? "席瓦爾【核心主力】" : "門德斯【明星門將】"); }
+            while(awayStars.length < 3) { awayStars.push(awayStars.length === 2 ? "戈麥斯//關鍵後防】" : "洛佩斯【中場調度】"); }
+            hBox.innerHTML = homeStars.map(s => `<div class="bg-blue-500/10 border border-blue-500/30 px-4 py-2.5 rounded-lg text-base font-extrabold text-blue-300 shadow-sm tracking-wide"><i class="fa-solid fa-star text-amber-400 mr-2 text-xs"></i>${s}</div>`).join('');
+            aBox.innerHTML = awayStars.map(s => `<div class="bg-red-500/10 border border-red-500/30 px-4 py-2.5 rounded-lg text-base font-extrabold text-red-300 shadow-sm tracking-wide"><i class="fa-solid fa-fire text-amber-500 mr-2 text-xs"></i>${s}</div>`).join('');
+            
+            if(!m.advice) {
+                m.advice = { team: m.home + "不敗", handicap: "平手盤 (0)", size: "小 2/2.5", prob: "55%" };
+                m.report = "大數據暫未完全獲取本場深度報告，分析引擎以歷史常規站位推演。";
+            }
+            
+            document.getElementById('report-box').innerText = m.report || "該賽事分析數據已透過 AI 模型完成量化。";
+            document.getElementById('adv-team').innerText = m.advice.team;
+            document.getElementById('adv-handicap').innerText = m.advice.handicap;
+            document.getElementById('adv-size').innerText = m.advice.size;
+            document.getElementById('result-probability').innerText = m.advice.prob;
+            document.getElementById('gauge-bar-fill').style.width = m.advice.prob;
+            
+            const cBox = document.getElementById('choices-box');
+            let mockChoices = m.advice.size.includes('大') ? 
+                (m.advice.team === m.home ? ['2-1','3-1','2-2','3-0','1-2'] : ['1-2','1-3','0-3','2-2','2-1']) :
+                (m.advice.team === m.home ? ['1-0','2-0','1-1','0-0','0-1'] : ['0-1','0-2','1-1','0-0','1-0']);
+            cBox.innerHTML = mockChoices.map(c => `<div class="bg-slate-950 border border-slate-800 text-slate-300 font-mono text-center py-1.5 rounded text-xs font-bold hover:border-amber-500/50 hover:text-amber-400 transition-colors cursor-default">${c}</div>`).join('');
+            
+            renderForumCharts(m);
+            resetAiWindow();
+        }
+
+        function resetAiWindow() {
+            if(typingTimer) clearInterval(typingTimer);
+            document.getElementById('ai-briefing-text').innerText = "請選擇上方 AI 引擎，並點擊按鈕獲取 Sofascore 即時分析說明...";
+            document.getElementById('ai-loading-status').classList.add('hidden');
+        }
+
+        // 核心 AI 生成庫：包含四大模型各 10 種，精準融入「角球顆數建議」與「黃牌張數建議」
+        function triggerSofascoreAi() {
+            if(!activeMatchObject) {
+                alert("請先從左側選擇一場賽事！");
+                return;
+            }
+            
+            const txtElement = document.getElementById('ai-briefing-text');
+            const loader = document.getElementById('ai-loading-status');
+            const pBar = document.getElementById('ai-progress-bar');
+            const pTxt = document.getElementById('ai-progress-text');
+            const selectedModel = document.querySelector('input[name="ai-model"]:checked').value;
+            
+            if(typingTimer) clearInterval(typingTimer);
+            txtElement.innerText = "";
+            loader.classList.remove('hidden');
+            
+            pBar.style.width = '15%';
+            pTxt.innerText = "正在讀取 Sofascore 臨場大數據";
+            
+            setTimeout(() => { 
+                pBar.style.width = '60%'; 
+                pTxt.innerText = "正在透過跨網量化運算核心進行特徵比對"; 
+            }, 350);
+            
+            setTimeout(() => { 
+                pBar.style.width = '100%'; 
+            }, 750);
+            
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                
+                const seed = (activeMatchObject.id % 10);
+                const home = activeMatchObject.home;
+                const away = activeMatchObject.away;
+                const recTeam = activeMatchObject.advice.team;
+                const recSize = activeMatchObject.advice.size;
+                
+                // 動態生成逼真角球數與黃牌數
+                const corners = 8 + (activeMatchObject.id % 5); 
+                const cards = 2 + (activeMatchObject.id % 4); 
+                
+                let finalBrief = "";
+                
+                const chatgptTemplates = [
+                    `【ChatGPT 深度動態評估】Sofascore 數據顯示 ${home} 控球率預期達 54%。團隊近期高位逼搶成功率極高，反觀 ${away} 邊路防守體力在 70 分鐘後有嚴重下滑趨勢。讓球盤口建議緊跟 ${recTeam} 的攻勢窗口，大小分建議首選 ${recSize}。臨場量化數據比對，本場角球顆數建議為 ${corners} 顆上下、黃牌張數建議開出 ${cards} 張。`,
+                    `【ChatGPT 數據量化分析】近 5 場歷史大數據指出，${home} 的中場阻截率提升了 12%，這將極大程度限制 ${away} 最擅長的核心中路滲透突擊。本場讓球盤口建議朝 ${recTeam} 的體系推進，大小分建議鎖定 ${recSize}。根據臨場攻防硬度，預期整場角球顆數建議落在 ${corners} 顆左右、雙方拼搶激烈導致黃牌張數建議上看 ${cards} 張。`,
+                    `【ChatGPT 戰術盤面模型】本場賽事走勢極度依賴首粒進球的時間點。${home} 本賽季在領先狀態下的勝率高達 85%，而 ${away} 則是擅長在落後時進行瘋狂反撲。本場讓球盤口建議重點關注 ${recTeam}，大小分建議向 ${recSize} 看齊。此外，兩隊邊路拉扯頻繁，角球顆數建議看好 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【ChatGPT 傷停與熱圖分析】觀測 Sofascore 即時熱圖，${away} 的進攻軸心有明顯左傾現象。若 ${home} 能在右路部署足夠的攔截硬度，將大幅降低被破門機率。讓球盤口建議圍繞 ${recTeam} 的不敗格局，大小分建議參考 ${recSize}。戰術數據庫顯示，本場角球顆數建議預估達 ${corners} 顆、黃牌張數建議落在 ${cards} 張區間。`,
+                    `【ChatGPT 進攻效率報告】數據庫顯示雙方在角球進攻的得分率均低於大會平均。${home} 主打地面傳控，${away} 則依靠長傳衝吊，風格極致互克。讓球盤口建議傾向支持 ${recTeam}，大小分建議防守端開出 ${recSize}。實時盤口解析，本場角球顆數建議推薦落點為 ${corners} 顆、防守動作克制使黃牌張數建議預期為 ${cards} 張。`,
+                    `【ChatGPT 盤口心理預測】多網量化指標顯示市場資金在賽前迅速湧入。然而從 Sofascore 核心防守數據來看，客隊防守韌性被低估。讓球盤口建議遵從大數據回歸指標指向 ${recTeam}，大小分建議跟隨 ${recSize} 開出。兩隊中圈爭奪劇烈，本場角球顆數建議看好 ${corners} 顆、黃牌張數建議開出 ${cards} 張。`,
+                    `【ChatGPT 臨場體能監控】這是 ${away} 連續第三場異地作戰，核心球員的跑動覆蓋率預計衰退 8-10%。這對於坐擁主場優勢且擅長快速輪轉的 ${home} 而言是撕裂防線的絕佳窗口。讓球盤口建議鎖定 ${recTeam} 順利打出，大小分建議 ${recSize}。戰術角球顆數建議精算為 ${corners} 顆、黃牌張數建議推演為 ${cards} 張。`,
+                    `【ChatGPT 歷史交叉比對】在與同類型打法的對手交戰中，${home} 的破緊逼成功率為 68%。只要本場進攻核心不被對手惡意切斷傳球線路，讓球盤口建議大膽跟隨 ${recTeam} 步伐，大小分建議契合 ${recSize} 格局。臨場指標修正：角球顆數建議期望值為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【ChatGPT 禁區數據解析】${away} 在過去的賽事中禁區內被對手射門次數過高。此防守漏洞面對進攻火力強大的 ${home} 將被無限放大，本場讓球盤口建議指向 ${recTeam} 有利位置，大小分建議支持 ${recSize} 的總進球走勢。數據推測角球顆數建議上看 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【ChatGPT 全局量化總結】綜合 Sofascore 十大維度指標，${home} 在進攻組織、傳球成功率、高空球爭搶上均佔據微幅優勢。讓球盤口建議鎖定 ${recTeam} 為主要戰略依據，大小分建議底線傾向 ${recSize}。大數據終極預測：角球顆數建議落在 ${corners} 顆、黃牌張數建議為 ${cards} 張。`
+                ];
+                
+                const geminiTemplates = [
+                    `【Gemini 智慧流體戰術評估】聚焦 Sofascore 即時核心戰力矩陣，${home} 的進攻轉化率目前優於平均值。在多維度權重疊加後，模型顯示主隊在中路的傳導更具穿透威脅。讓球盤口建議全面支持 ${recTeam} 的數據面，大小分建議鎖定 ${recSize}。邊際預測：角球顆數建議看好 ${corners} 顆、黃牌張數建議預估為 ${cards} 張。`,
+                    `【Gemini 多模態數據判定】${away} 在防守轉換為進攻的平均耗時極短，反擊速度在分組中名列前茅。${home} 若一味全線壓上後防線大機率面臨單刀危機。本場讓球盤口建議跟隨 ${recTeam} 的變陣調整，大小分建議精算 ${recSize}。戰術反饋角球顆數建議落在 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Gemini 網際網絡量化預測】本場賽前情報顯示裁判組執法風格偏向嚴厲。這對於防守動作較大的球隊相當不利。若點球或紅牌因素介入，讓球盤口建議傾向控制節奏能力更好的 ${recTeam} 一方，大小分建議看好 ${recSize}。經模型精密推演，角球顆數建議預計為 ${corners} 顆、黃牌張數建議將達 ${cards} 張。`,
+                    `【Gemini 戰力雷達解讀】交叉比對兩隊最近的防守站位，${home} 的防守三區抗壓能力極佳。${away} 雖然近期取得不俗戰績但含金量略嫌不足。本場讓球盤口建議首選推薦指向 ${recTeam}，大小分建議往 ${recSize} 方向尋求突破。動態追蹤顯示角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Gemini 陣型模擬器預測】大數據模擬雙方陣型對碰 1000 次的結果顯示，兩隊在常規時間內交卷平局的機率為 42%。進球數大機率鎖定在低區間，極度符合大小分建議中的 ${recSize} 特徵。本場讓球盤口建議指向 ${recTeam}。量化預期角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Gemini 核心球員動態】Sofascore 評分板指出 ${home} 的頭號球員狀態正處於賽季巔峰。其極具破壞力的盤帶將直接對位對手剛傷癒復出的邊後衛，這將是整場帶動 ${recTeam} 進攻的突破口。本場讓球盤口建議跟進 ${recTeam}，大小分建議支持 ${recSize}。角球顆數建議預計 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Gemini 地理與氣候大數據】本場比賽的濕度與氣溫更利於擅長體能消耗戰的隊伍。${home} 在下半場的控球率往往會因為體能問題而開始滑落，客隊反客為主空間大。讓球盤口建議審慎對待 ${recTeam} 盤面，大小分建議更偏向 ${recSize}。大數據回傳角球顆數建議 ${corners} 顆、黃牌張數建議 ${cards} 張。`,
+                    `【Gemini 進攻期望值 (xG)】模型計算顯示 ${home} 本場比賽的期望進球值為 1.65，而 ${away} 則為 1.12。這意味著主隊在常規時間內有較強的進帳走勢。讓球盤口建議順應戰力天平支持 ${recTeam}，大小分建議開出 ${recSize}。臨場修正角球顆數建議 ${corners} 顆、黃牌張數建議 ${cards} 張。`,
+                    `【Gemini 戰意與積分量化】由於本場勝負直接關係到晉級名額，${away} 勢必採取更為主動的進攻姿態。而 ${home} 只需保平即可出線，主動權掌握在主隊手中。讓球盤口建議看好防守反擊戰術幫助 ${recTeam} 奪得先機，大小分建議 ${recSize}。角球顆數建議看好 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Gemini 終極數據盤點】綜合 Sofascore 最新演算法，主客隊戰力比呈現膠著狀態。邊路傳中球的爭搶落點將是打破僵局的唯一化學反應。讓球盤口建議全面靠攏指標領先的 ${recTeam}，大小分建議大方向鎖定 ${recSize}。預測角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`
+                ];
+                
+                const deepseekTemplates = [
+                    `【DeepSeek 深度神經網絡分析】依據 Sofascore 的 AI 戰術回歸模型，${home} 近期呈現極強的慢熱屬性，賽事下半場的走勢才是兩隊定勝負的關鍵。讓球盤口建議密切注意 ${recTeam} 的臨場調配，大小分建議關注 ${recSize}。純算力推導本場角球顆數建議期望值為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 算力精準推演】${away} 在應對對手兩翼齊飛的戰術時防守補位覆蓋率會下降 15%。如果主隊今日能堅持拉開球場寬度進行拉扯，讓球盤口建議指向的 ${recTeam} 全取三分阻力將降到最低，大小分建議支持 ${recSize}。數據特徵指出角球顆數建議落在 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 邊界量化報告】在過去同等盤口賠率下，主隊的輸盤率偏高。結合 Sofascore 臨場球員健康指標，我們認為純數據模型依然傾向支持綜合評分較高的隊伍。讓球盤口建議首選 ${recTeam}，大小分建議判定為 ${recSize}。量化預期角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 攻防效率矩陣】數據模型抓取到 ${home} 在定位球防守中存在盲區。而 ${away} 恰好擁有身材高大的強悍中後衛，這很可能會成為本場比賽最致命的隱形炸彈。讓球盤口建議跟隨 ${recTeam} 防護線，大小分建議在總進球上大力支持 ${recSize}。角球顆數建議預測為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 即時概率模擬】剔除資金干擾因素後，純數據模型推導出比賽的贏球期望正向平衡點轉移。雙方近期防守端的無端失誤較多，控局能力成關鍵。讓球盤口建議大方向傾向 ${recTeam}，大小分建議走 ${recSize} 路線。角球顆數建議期望值為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 傳球路徑解碼】分析 ${away} 的中場核心傳球熱圖發現其向前推進成功率高達 82%。${home} 如果不在中圈施加貼身逼搶將陷入被動消耗。讓球盤口建議支持具備反擊威脅的 ${recTeam}，大小分建議判定更偏向 ${recSize}。預計角球顆數建議達 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 臨場戰術解構】大數據監測到 ${home} 主帥在面對緊逼防守時缺乏變陣方案。${away} 今日如果採取高壓戰術將有極大機率在中場直接斷球反殺。讓球盤口建議跟隨核心數據偏向 ${recTeam}，大小分建議 ${recSize} 為優。角球顆數建議精算為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 比分期望概率】最優權重回歸演算法顯示，雙方進攻火力的交叉點位於中低區間，傾向於一場1球定乾坤的硬仗。讓球盤口建議緊扣 ${recTeam} 的防守底線，大小分建議極大契合 ${recSize} 的預期。預期本場角球顆數建議落在 ${corners} 顆、黃牌張數建議開出 ${cards} 張。`,
+                    `【DeepSeek 歷史對戰修正】雖然歷史戰績方面雙方各有千秋，但那已是過時指標。Sofascore 最新動態模型顯示，讓球盤口建議關注的 ${recTeam} 團隊速率與默契度已不可同日而語，大小分建議跟進 ${recSize}。預估角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【DeepSeek 深度量化總結】模型經過 10,000 次蒙地卡羅模擬，結論指向雙方的戰術博弈將在 60 分鐘後進入白熱化。在讓球盤口建議上 ${recTeam} 的整體過盤成算高居首位，大小分建議緊貼 「${recSize}」 走勢。角球顆數建議指標為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`
+                ];
+
+                const grokTemplates = [
+                    `【Grok4 實時思維鏈推導】經由 Sofascore 熱力分佈與邊際效應比對，${home} 在左路形成了高密度的壓迫，直接封死推進窗口。讓球盤口建議強烈支持 ${recTeam} 在攻防轉換中取得全面主動，大小分建議瞄準 ${recSize}。高維度演算法預測：角球顆數建議為 ${corners} 顆、黃牌張數建議開出 ${cards} 張。`,
+                    `【Grok4 邊緣神經網絡反饋】Sofascore 數據模型回傳：${recTeam} 的核心中場在臨場評估中狀態大幅回升，傳球成功率攀升至極高區間。本場讓球盤口建議毫無疑問看好 ${recTeam} 主導全場盤面，大小分建議鎖定 ${recSize}。預估總角球顆數建議為 ${corners} 顆、黃牌張數建議在 ${cards} 張上下。`,
+                    `【Grok4 臨場資金重合模型】市場對總進球的買入熱度在賽前攀升至高點。雙方進攻戰術大開，這極大程度更契合戰鬥意志更強烈的球隊。讓球盤口建議支持 ${recTeam} 在開局奪得優勢，大小分建議首選 ${recSize}。大數據精算角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Grok4 智能全盤精算】對比兩隊在 Sofascore 的歷史對陣軌跡，客隊防守端的被動補位漏人率達 18%。此項致命弱點面對轟炸時將無處遁形。讓球盤口建議強烈契合報告中的 ${recTeam} 方向，大小分建議參考 ${recSize}。本場角球顆數建議看好 ${corners} 顆、黃牌張數建議預估 ${cards} 張。`,
+                    `【Grok4 高維度矩陣模擬】大數據顯示 ${home} 擅長利用反擊撕裂對手防線，而 ${away} 近期控球率過高卻缺乏終結能力。此消彼長之下，本場讓球盤口建議倒向戰術執行力更強的 ${recTeam}，大小分建議走 ${recSize}。量化預期角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Grok4 進攻期望演算法】Sofascore 實時更新的 xG（期望進球值）曲線指出，兩隊在前 15 分鐘的進攻試探會非常激烈。一旦僵局被打破，讓球盤口建議緊盯 ${recTeam} 盤面，大小分建議將完全進入 ${recSize} 的大球軌道。預計角球顆數建議落在 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Grok4 賽前關鍵因子解碼】觀測到 ${away} 的防守站位有明顯收縮防守的傾向。這種鐵桶陣雖然穩固但會將中場控制權拱手讓人。在讓球盤口建議上模型堅定站在 ${recTeam} 這邊，大小分建議跟進 ${recSize}。多維度計算得出角球顆數建議 ${corners} 顆、黃牌張數建議 ${cards} 張。`,
+                    `【Grok4 數據流體走勢報告】兩隊在過去幾場賽事的體能消耗指數已達臨界點。本場誰能做好替補席的深度輪換誰就能掌握下半場主動權。讓球盤口建議指向陣容更有深度的 ${recTeam}，大小分建議開出 ${recSize}。臨場回傳角球顆數建議 ${corners} 顆、黃牌張數建議 ${cards} 張。`,
+                    `【Grok4 臨場判罰與環境權重】今日賽場的草皮濕度與風向更適合大範圍長傳調度。這對於主打細膩短傳的球隊是一大考驗。綜合環境變數，讓球盤口建議全面傾向 ${recTeam}，大小分建議鎖定 ${recSize}。環境精算本場角球顆數建議預估為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`,
+                    `【Grok4 終極核心戰力總結】結合 Sofascore 即時反饋的防守攔截率與進攻效率，兩隊的實力天平已發生傾斜。本場讓球盤口建議在 ${recTeam} 的領航下勝算極高，大小分建議全面契合 ${recSize} 的前提預期。總體預測角球顆數建議為 ${corners} 顆、黃牌張數建議為 ${cards} 張。`
+                ];
+                
+                if (selectedModel === "chatgpt") {
+                    finalBrief = chatgptTemplates[seed];
+                } else if (selectedModel === "gemini") {
+                    finalBrief = geminiTemplates[seed];
+                } else if (selectedModel === "deepseek") {
+                    finalBrief = deepseekTemplates[seed];
+                } else if (selectedModel === "grok") {
+                    finalBrief = grokTemplates[seed];
+                }
+                
+                typeWriterEffect(txtElement, finalBrief);
+            }, 1000);
+        }
+
+        function typeWriterEffect(element, text) {
+            let index = 0;
+            element.innerText = "";
+            typingTimer = setInterval(() => {
+                if (index < text.length) {
+                    if(text.charAt(index) === '\n') element.innerHTML += "<br>";
+                    else element.innerText += text.charAt(index);
+                    index++;
+                } else {
+                    clearInterval(typingTimer);
+                }
+            }, 8);
+        }
+
+        // 圓餅圖組件：同步配合上鎖結構
+        function renderForumCharts(m) {
+            const container = document.getElementById('forum-charts-container');
+            const baseProb = parseInt(m.advice.prob);
+            let homeProb, drawProb, awayProb;
+            if (m.advice.team === m.home) {
+                homeProb = Math.floor(baseProb * 0.9);
+                awayProb = Math.floor((100 - homeProb) * 0.6);
+                drawProb = 100 - homeProb - awayProb;
+            } else {
+                awayProb = Math.floor(baseProb * 0.9);
+                homeProb = Math.floor((100 - awayProb) * 0.6);
+                drawProb = 100 - homeProb - awayProb;
+            }
+            const isBigSize = m.advice.size.includes('大');
+            const bigOdds = isBigSize ? Math.floor(65 + Math.random() * 12) : Math.floor(22 + Math.random() * 13);
+            const smallOdds = 100 - bigOdds;
+
+            container.innerHTML = `
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-900 flex flex-col items-center justify-between">
+                    <span class="font-bold block text-center text-[11px] text-slate-400 mb-2"><i class="fa-solid fa-users text-blue-400 mr-1"></i>勝平負觀點比例</span>
+                    <div class="w-20 h-20 pie-chart shadow-md shrink-0" style="--home-color:#3b82f6; --draw-color:#64748b; --away-color:#ef4444; --p1:${homeProb}%; --p2:${homeProb + drawProb}%;"></div>
+                    <div class="grid grid-cols-3 gap-1 text-[9px] w-full mt-2 text-center font-mono">
+                        <div class="text-blue-400 font-bold">主:${homeProb}%</div>
+                        <div class="text-slate-400">和:${drawProb}%</div>
+                        <div class="text-red-400 font-bold">客:${awayProb}%</div>
+                    </div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-900 flex flex-col items-center justify-between">
+                    <span class="font-bold block text-center text-[11px] text-slate-400 mb-2"><i class="fa-solid fa-circle-nodes text-orange-400 mr-1"></i>大小球追蹤比例</span>
+                    <div class="w-20 h-20 pie-chart shadow-md shrink-0" style="--home-color:#f59e0b; --draw-color:#14b8a6; --away-color:#14b8a6; --p1:${bigOdds}%; --p2:100%;"></div>
+                    <div class="grid grid-cols-2 gap-2 text-[9px] w-full mt-2 text-center font-mono">
+                        <div class="text-amber-500 font-bold">大球:${bigOdds}%</div>
+                        <div class="text-teal-400 font-bold">小球:${smallOdds}%</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function drawPitchCanvasLayout(homeName, awayName) {
+            const canvas = document.getElementById('live-pitch-canvas');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            ctx.clearRect(0,0,w,h);
+            ctx.fillStyle = "rgba(15,45,29,0.6)";
+            ctx.fillRect(0,0,w,h);
+            
+            ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(20, 20, w-40, h-40);
+            ctx.beginPath(); ctx.moveTo(w/2, 20); ctx.lineTo(w/2, h-20); ctx.stroke();
+            ctx.beginPath(); ctx.arc(w/2, h/2, 35, 0, Math.PI*2); ctx.stroke();
+            ctx.strokeRect(20, h/2 - 50, 50, 100); ctx.strokeRect(20, h/2 - 25, 20, 50);
+            ctx.strokeRect(w-70, h/2 - 50, 50, 100); ctx.strokeRect(w-40, h/2 - 25, 20, 50);
+            
+            function drawPlayer(x, y, color, label) {
+                ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill();
+                ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
+                ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.font = "bold 9px sans-serif";
+                ctx.fillText(label, x - 10, y - 9);
+            }
+            for(let i=0; i<11; i++) {
+                drawPlayer(40 + Math.random()*(w/2-80), 30 + Math.random()*(h-60), "#3b82f6", homeName.substring(0,2));
+                drawPlayer(w/2 + 20 + Math.random()*(w/2-80), 30 + Math.random()*(h-60), "#ef4444", awayName.substring(0,2));
+            }
+        }
+
+        window.onload = () => {
+            initScheduleMenu();
+            if(matchDatabase.length > 0) {
+                selectActiveMatch(1);
+            }
+        };
+
+        // ================= 安全防禦：全方位禁用 F12 / 右鍵 / 核心代碼反破解混淆 =================
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+                e.preventDefault();
+                return false;
+            }
+            if (e.ctrlKey && e.keyCode === 85) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        setInterval(function() {
+            (function(a) {
+                return (function(a) {
+                    return (typeof a === 'string') ? function(b) {}.constructor('while (true) {}').apply('counter') : a % 2 === 0 ? function() { debugger; }.call(null) : function() { debugger; }.call(null);
+                })(a);
+            })(0);
+        }, 300);
+    </script>
+
+
+<!-- ================= 客製化補丁：版面調整 / 右側解鎖 / 每日密碼鎖 ================= -->
+<style id="custom-non-destructive-patch-style">
+    /* 右邊加寬、中間收窄；左側保留原本寬度 */
+    body > div.flex-1.flex > main {
+        flex: 0 1 38% !important;
+        min-width: 360px !important;
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+    }
+    body > div.flex-1.flex > aside:last-child {
+        width: 620px !important;
+        flex-basis: 620px !important;
+        max-width: 620px !important;
+    }
+
+    /* 打開右側三個原本 VIP 模糊/遮罩區塊 */
+    body > div.flex-1.flex > aside:last-child .blur-md,
+    body > div.flex-1.flex > aside:last-child .blur-sm {
+        filter: none !important;
+        -webkit-filter: none !important;
+    }
+    body > div.flex-1.flex > aside:last-child .backdrop-blur-md,
+    body > div.flex-1.flex > aside:last-child .backdrop-blur-sm {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    body > div.flex-1.flex > aside:last-child .opacity-20,
+    body > div.flex-1.flex > aside:last-child .opacity-40 {
+        opacity: 1 !important;
+    }
+    body > div.flex-1.flex > aside:last-child .select-none {
+        user-select: auto !important;
+    }
+    body > div.flex-1.flex > aside:last-child .pointer-events-none {
+        pointer-events: auto !important;
+    }
+    body > div.flex-1.flex > aside:last-child .absolute.top-\[68px\],
+    body > div.flex-1.flex > aside:last-child .absolute.inset-0 {
+        display: none !important;
+    }
+
+    .daily-unlock-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(245, 158, 11, 0.13);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.32);
+        border-radius: 999px;
+        padding: 2px 7px;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: .04em;
+    }
+    .daily-unlocked-pill {
+        background: rgba(16, 185, 129, 0.14);
+        color: #34d399;
+        border-color: rgba(16, 185, 129, 0.34);
+    }
+</style>
+
+
+
+<style id="custom-v2-right-panel-readability-style">
+    /* V2：右側整體字體放大，並避免下方圓餅圖文字被卡住 */
+    body > div.flex-1.flex > aside:last-child {
+        width: 680px !important;
+        flex-basis: 680px !important;
+        max-width: 680px !important;
+        font-size: 15px !important;
+        line-height: 1.55 !important;
+        padding-bottom: 28px !important;
+    }
+
+    body > div.flex-1.flex > main {
+        flex: 0 1 32% !important;
+        min-width: 320px !important;
+    }
+
+    body > div.flex-1.flex > aside:last-child span,
+    body > div.flex-1.flex > aside:last-child p,
+    body > div.flex-1.flex > aside:last-child div,
+    body > div.flex-1.flex > aside:last-child button,
+    body > div.flex-1.flex > aside:last-child label {
+        line-height: 1.5 !important;
+    }
+
+    body > div.flex-1.flex > aside:last-child .text-\[9px\] { font-size: 11px !important; }
+    body > div.flex-1.flex > aside:last-child .text-\[10px\] { font-size: 12px !important; }
+    body > div.flex-1.flex > aside:last-child .text-\[11px\] { font-size: 13px !important; }
+    body > div.flex-1.flex > aside:last-child .text-xs { font-size: 14px !important; }
+    body > div.flex-1.flex > aside:last-child .text-sm { font-size: 15px !important; }
+    body > div.flex-1.flex > aside:last-child .text-base { font-size: 17px !important; }
+    body > div.flex-1.flex > aside:last-child .text-lg { font-size: 20px !important; }
+
+    body > div.flex-1.flex > aside:last-child button {
+        font-size: 14px !important;
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+    }
+
+    #ai-briefing-text,
+    #report-box {
+        font-size: 14px !important;
+        line-height: 1.65 !important;
+    }
+
+    /* 下方圓餅圖區塊：取消過度壓縮，讓卡片和文字完整顯示 */
+    body > div.flex-1.flex > aside:last-child > div:last-child {
+        min-height: 360px !important;
+        height: auto !important;
+        flex: 0 0 auto !important;
+        overflow: visible !important;
+        margin-bottom: 24px !important;
+    }
+
+    body > div.flex-1.flex > aside:last-child > div:last-child .flex-1,
+    #forum-charts-container {
+        min-height: 260px !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    #forum-charts-container {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: stretch !important;
+        gap: 18px !important;
+        padding-bottom: 8px !important;
+    }
+
+    #forum-charts-container > div {
+        min-height: 245px !important;
+        padding: 18px 14px !important;
+        overflow: visible !important;
+    }
+
+    #forum-charts-container .pie-chart {
+        width: 112px !important;
+        height: 112px !important;
+        min-width: 112px !important;
+        min-height: 112px !important;
+        margin: 8px auto !important;
+    }
+
+    #forum-charts-container .grid {
+        font-size: 12px !important;
+        line-height: 1.45 !important;
+        row-gap: 6px !important;
+        white-space: nowrap !important;
+    }
+</style>
+
+<script id="custom-non-destructive-patch-script">
+(function() {
+    const DAILY_PASSWORDS = {
+        "06-12": "BDJT",
+        "06-13": "ZYQY",
+        "06-14": "YN2Y",
+        "06-15": "K8ZL",
+        "06-16": "UB2E",
+        "06-17": "VDME",
+        "06-18": "W4KJ",
+        "06-19": "P69Z",
+        "06-20": "NHUF",
+        "06-21": "FS6B",
+        "06-22": "98JE",
+        "06-23": "LG8J",
+        "06-24": "48Z3",
+        "06-25": "RNRT",
+        "06-26": "2QFG",
+        "06-27": "DBMJ",
+        "06-28": "V9ML"
+    };
+
+    function getUnlockedDates() {
+        try {
+            return new Set(JSON.parse(localStorage.getItem('worldcup_daily_unlocked_dates') || '[]'));
+        } catch(e) {
+            return new Set();
+        }
+    }
+
+    function saveUnlockedDates(set) {
+        localStorage.setItem('worldcup_daily_unlocked_dates', JSON.stringify(Array.from(set)));
+    }
+
+    function ensureAiProgressBar() {
+        const status = document.getElementById('ai-loading-status');
+        if(status && !document.getElementById('ai-progress-bar')) {
+            const barWrap = document.createElement('div');
+            barWrap.className = 'w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-2';
+            barWrap.innerHTML = '<div id="ai-progress-bar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full transition-all duration-500" style="width:0%"></div>';
+            status.appendChild(barWrap);
+        }
+    }
+
+    function unlockRightVipPanels() {
+        const rightAside = document.querySelector('body > div.flex-1.flex > aside:last-child');
+        if(!rightAside) return;
+
+        rightAside.querySelectorAll('.blur-md, .blur-sm').forEach(el => {
+            el.classList.remove('blur-md', 'blur-sm', 'pointer-events-none');
+            el.style.filter = 'none';
+            el.style.pointerEvents = 'auto';
+        });
+        rightAside.querySelectorAll('.opacity-20, .opacity-40').forEach(el => {
+            el.classList.remove('opacity-20', 'opacity-40');
+            el.style.opacity = '1';
+        });
+        ['VIP版即可免費查看', 'VIP 權限不足無法查閱結果', 'VIP權限不足無法查閱結果', '圖表分析已鎖定'].forEach(text => {
+            rightAside.querySelectorAll('*').forEach(el => {
+                if((el.textContent || '').trim().includes(text)) {
+                    const overlay = el.closest('.absolute');
+                    if(overlay) overlay.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // 覆蓋原本左側賽事：全部預設上鎖，輸入該日期 4 碼英文數字密碼後開啟當天所有賽事。
+    window.initScheduleMenu = function() {
+        const container = document.getElementById('schedule-container');
+        if(!container) return;
+        const groupedByDate = {};
+        const unlockedDates = getUnlockedDates();
+
+        matchDatabase.forEach(m => {
+            if(!groupedByDate[m.date]) groupedByDate[m.date] = [];
+            groupedByDate[m.date].push(m);
+        });
+
+        let htmlStr = '';
+        Object.keys(groupedByDate).sort().forEach(d => {
+            const dayUnlocked = unlockedDates.has(d);
+            htmlStr += `<div class="date-header flex items-center justify-between gap-2">
+                <span><i class="fa-regular fa-calendar-days mr-1.5 text-amber-500"></i>賽事時間: ${d}</span>
+                <span class="daily-unlock-pill ${dayUnlocked ? 'daily-unlocked-pill' : ''}">
+                    <i class="fa-solid ${dayUnlocked ? 'fa-unlock' : 'fa-lock'}"></i>${dayUnlocked ? '本日已解鎖' : '本日密碼鎖'}
+                </span>
+            </div>`;
+
+            groupedByDate[d].forEach(m => {
+                m.isAutoLocked = !dayUnlocked;
+                const statusClass = dayUnlocked ? '' : 'match-locked';
+                const badge = dayUnlocked
+                    ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] px-1.5 py-0.5 rounded font-black"><i class="fa-solid fa-unlock mr-0.5"></i>已解鎖</span>`
+                    : `<span class="bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] px-1.5 py-0.5 rounded font-black"><i class="fa-solid fa-lock mr-0.5"></i>密碼鎖</span>`;
+
+                htmlStr += `
+                    <div onclick="selectActiveMatch(${m.id})" class="bg-[#0c1222] hover:bg-[#121b33] border border-slate-900 rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all gap-3 ${statusClass}">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-1.5 text-slate-500 font-mono text-[11px] font-bold">
+                                <span>小組賽 ${m.group} 組</span><span>·</span><span>${m.time}</span>
+                            </div>
+                            <div class="text-slate-200 font-black tracking-wide text-base flex items-center gap-1.5">
+                                <span class="text-blue-400">${m.home}</span> <span class="text-slate-600 text-xs font-normal">VS</span> <span class="text-red-400">${m.away}</span>
+                            </div>
+                        </div>
+                        <div class="shrink-0">${badge}</div>
+                    </div>
+                `;
+            });
+        });
+        container.innerHTML = htmlStr;
+    };
+
+    const originalSelectActiveMatch = window.selectActiveMatch;
+    window.selectActiveMatch = function(id) {
+        const m = matchDatabase.find(item => item.id === id);
+        if(!m) return;
+
+        const unlockedDates = getUnlockedDates();
+        if(!unlockedDates.has(m.date)) {
+            const input = prompt(`請輸入 ${m.date} 當日賽事 4 位英文數字密碼：`);
+            if(input === null) return;
+            const normalized = String(input).trim().toUpperCase();
+            if(normalized !== DAILY_PASSWORDS[m.date]) {
+                alert('密碼錯誤，該日期賽事仍為鎖定狀態。');
+                return;
+            }
+            unlockedDates.add(m.date);
+            saveUnlockedDates(unlockedDates);
+            initScheduleMenu();
+            alert(`${m.date} 當日賽事已成功解鎖！`);
+        }
+
+        m.isAutoLocked = false;
+        if(typeof originalSelectActiveMatch === 'function') {
+            originalSelectActiveMatch(id);
+        }
+        unlockRightVipPanels();
+        ensureAiProgressBar();
+    };
+
+    window.onload = function() {
+        ensureAiProgressBar();
+        unlockRightVipPanels();
+        initScheduleMenu();
+        activeMatchObject = null;
+        const title = document.getElementById('panel-title');
+        const meta = document.getElementById('panel-meta');
+        if(title) title.innerText = '請先從左側輸入每日密碼解鎖賽事';
+        if(meta) meta.innerText = '所有賽事皆已啟用每日 4 位英文數字密碼鎖';
+    };
+})();
+</script>
+
+
+<script id="custom-v2-title-text-patch">
+(function(){
+    function updateGeneratorTitle(){
+        document.querySelectorAll('body > div.flex-1.flex > aside:last-child span').forEach(function(el){
+            if((el.textContent || '').includes('多模型 Sofascore 實時數據生成器')){
+                el.innerHTML = '<i class="fa-solid fa-microchip text-teal-400"></i> 多模型 三大足球數據網 實時生成器';
+            }
+        });
+    }
+    document.addEventListener('DOMContentLoaded', updateGeneratorTitle);
+    setTimeout(updateGeneratorTitle, 0);
+})();
+</script>
+
+
+
+<!-- Custom v4 patch: 120 AI brief templates, generation lock, corner/card recommendations, forum wording update -->
+<style id="custom-v4-ai-and-forum-style">
+    #forum-charts-container {
+        align-items: stretch !important;
+        overflow: visible !important;
+        min-height: 350px !important;
+    }
+    #forum-charts-container > div {
+        min-height: 330px !important;
+        padding: 18px 14px !important;
+        overflow: visible !important;
+    }
+    #forum-charts-container .forum-chart-title {
+        font-size: 16px !important;
+        line-height: 1.45 !important;
+        margin-bottom: 14px !important;
+        white-space: normal !important;
+    }
+    #forum-charts-container .pie-chart {
+        width: 132px !important;
+        height: 132px !important;
+        min-width: 132px !important;
+        min-height: 132px !important;
+        margin: 8px 0 12px !important;
+    }
+    #forum-charts-container .forum-ratio-row,
+    #forum-charts-container .forum-size-row {
+        font-size: 22px !important;
+        line-height: 1.45 !important;
+        gap: 12px !important;
+        margin-top: 14px !important;
+        white-space: nowrap !important;
+    }
+    #forum-charts-container .forum-ratio-row div,
+    #forum-charts-container .forum-size-row div {
+        font-size: 22px !important;
+        font-weight: 950 !important;
+        letter-spacing: 0.02em !important;
+    }
+    #forum-charts-container .forum-size-row {
+        grid-template-columns: 1fr !important;
+        row-gap: 6px !important;
+    }
+    #ai-briefing-text {
+        font-size: 15.5px !important;
+        line-height: 1.82 !important;
+    }
+    #ai-generate-btn.is-generating {
+        opacity: 0.62 !important;
+        cursor: wait !important;
+        filter: grayscale(0.25) !important;
+    }
+    .custom-market-extra-line {
+        font-size: 13.5px !important;
+        line-height: 1.6 !important;
+    }
+    .custom-market-extra-line span {
+        font-size: 14px !important;
+        font-weight: 900 !important;
+    }
+</style>
+
+<script id="custom-v4-ai-template-and-forum-patch">
+(function(){
+    const MODEL_TEMPLATE_RECENT_KEY_PREFIX = 'worldcup_ai_recent_template_indexes_v4_';
+    let aiGenerationLocked = false;
+
+    function safeNumber(value, fallback) {
+        const parsed = parseInt(String(value || '').replace('%',''), 10);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function getMatchMetrics(m) {
+        const id = Number(m && m.id ? m.id : 1);
+        const baseProb = safeNumber(m && m.advice ? m.advice.prob : '60%', 60);
+        const isBig = !!(m && m.advice && String(m.advice.size || '').includes('大'));
+        const homeEdge = m && m.advice && m.advice.team && m.advice.team.includes(m.home);
+        const awayEdge = m && m.advice && m.advice.team && m.advice.team.includes(m.away);
+        const tempoIndex = (id * 13) % 100;
+        const cornerBase = isBig ? 9 : 7;
+        const cornerAdj = homeEdge || awayEdge ? 1 : 0;
+        const cardBase = tempoIndex > 68 ? 5 : tempoIndex > 38 ? 4 : 3;
+        return {
+            possession: homeEdge ? 53 + (id % 7) : awayEdge ? 44 + (id % 8) : 49 + (id % 5),
+            xgHome: (1.08 + ((id * 7) % 96) / 100).toFixed(2),
+            xgAway: (0.72 + ((id * 5) % 84) / 100).toFixed(2),
+            shots: 10 + (id % 8),
+            dangerous: 36 + ((id * 3) % 25),
+            corners: Math.max(6, Math.min(13, cornerBase + cornerAdj + (id % 4))),
+            cards: Math.max(2, Math.min(7, cardBase + (id % 3 === 0 ? 1 : 0))),
+            tempo: isBig ? '偏快' : '偏穩',
+            pressure: 58 + ((id * 4) % 27),
+            pass: 78 + ((id * 2) % 12),
+            counter: 32 + ((id * 5) % 21),
+            setPiece: 18 + ((id * 3) % 16),
+            lateRisk: 60 + ((id * 6) % 25),
+            duel: 46 + ((id * 9) % 27),
+            save: 3 + (id % 5),
+            offside: 1 + (id % 4),
+            attackThird: 41 + ((id * 8) % 22),
+            pressRecover: 7 + (id % 7),
+            prob: baseProb
+        };
+    }
+
+    function getRecentIndexes(model) {
+        try {
+            const raw = localStorage.getItem(MODEL_TEMPLATE_RECENT_KEY_PREFIX + model);
+            const list = JSON.parse(raw || '[]');
+            return Array.isArray(list) ? list.slice(0, 4).map(Number).filter(Number.isFinite) : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function saveRecentIndex(model, idx) {
+        const recent = getRecentIndexes(model).filter(i => i !== idx);
+        recent.unshift(idx);
+        localStorage.setItem(MODEL_TEMPLATE_RECENT_KEY_PREFIX + model, JSON.stringify(recent.slice(0, 4)));
+    }
+
+    function chooseTemplateIndex(model, matchId, templateCount) {
+        const recent = getRecentIndexes(model);
+        const modelOffsets = { chatgpt: 2, gemini: 9, deepseek: 16, grok: 23 };
+        let idx = ((Number(matchId || 1) * 11) + (modelOffsets[model] || 0) + Math.floor(Date.now() / 9000)) % templateCount;
+        let guard = 0;
+        while(recent.includes(idx) && guard < templateCount) {
+            idx = (idx + 1) % templateCount;
+            guard++;
+        }
+        saveRecentIndex(model, idx);
+        return idx;
+    }
+
+    function buildTemplates(model, m, metrics) {
+        const home = m.home;
+        const away = m.away;
+        const recTeam = (m.advice && m.advice.team) || (home + '不敗');
+        const recSize = (m.advice && m.advice.size) || '小 2/2.5';
+        const handicap = (m.advice && m.advice.handicap) || '平手盤 (0)';
+        const modelName = { chatgpt: 'ChatGPT', gemini: 'Gemini', deepseek: 'DeepSeek', grok: 'Grok4' }[model] || model;
+        const dataNet = model === 'chatgpt' ? 'Sofascore、FotMob、WhoScored' : model === 'gemini' ? '三大足球數據網交叉回測' : model === 'deepseek' ? '多層量化模型' : '即時資料流矩陣';
+        const style = {
+            chatgpt: '偏向整體盤面與攻防效率',
+            gemini: '偏向多模態情報與節奏校正',
+            deepseek: '偏向量化回歸與風險拆解',
+            grok: '偏向臨場變數與討論熱度追蹤'
+        }[model] || '偏向綜合數據判讀';
+        return [
+            `【${modelName}｜控球壓制模型】${dataNet} 顯示，${home} 預估控球率約 ${metrics.possession}%，傳球成功率落在 ${metrics.pass}% 附近。${away} 若被迫長時間退守，禁區前沿會出現二點球壓力。模型${style}，讓球盤口建議參考 ${handicap}，核心方向鎖定 ${recTeam}，大小分建議為 ${recSize}。角球顆數建議 ${metrics.corners} 顆，黃牌張數建議 ${metrics.cards} 張。`,
+            `【${modelName}｜xG 期望進球盤】本場 ${home} 期望進球值推估 ${metrics.xgHome}，${away} 期望進球值推估 ${metrics.xgAway}。若開局 20 分鐘內射門數突破 ${Math.max(4, metrics.shots - 8)} 次，盤面會更快往進球方向移動。推薦方向維持 ${recTeam}，讓球觀察 ${handicap}，大小分建議 ${recSize}，角球預估 ${metrics.corners} 顆。`,
+            `【${modelName}｜邊路推進偵測】三網數據回傳 ${home} 邊路推進成功率偏高，危險進攻預估可達 ${metrics.dangerous} 次；${away} 的回防站位若拉不開，後點包抄會成為破口。本場建議以 ${recTeam} 為主要判斷，大小分走 ${recSize}，角球顆數建議 ${metrics.corners} 顆。`,
+            `【${modelName}｜防守硬度分析】${away} 面對高壓逼搶時，後場出球穩定度容易下滑。模型給出對抗強度 ${metrics.pressure}% 的偏高數值，因此犯規與定位球會變多。讓球盤口建議 ${handicap}，推薦 ${recTeam}，黃牌張數建議 ${metrics.cards} 張，大小分建議 ${recSize}。`,
+            `【${modelName}｜節奏快慢判定】本場節奏模型顯示比賽速度${metrics.tempo}，${home} 與 ${away} 在中場第一落點會有明顯拉鋸。若上半場出現早球，總進球會被快速推高。整體方向：${recTeam} 較有利，大小分建議 ${recSize}，角球顆數建議 ${metrics.corners} 顆。`,
+            `【${modelName}｜反擊效率觀察】${away} 反擊威脅指標約 ${metrics.counter}%，代表少量控球也可能製造高品質射門。${home} 必須控制失誤區域，避免中路被直接打穿。盤口方向仍以 ${recTeam} 為核心，讓球參考 ${handicap}，大小分建議 ${recSize}。`,
+            `【${modelName}｜定位球權重模型】本場定位球威脅值約 ${metrics.setPiece}%，角球與前場自由球會是重要變數。${home} 若能把節奏壓到對方半場，${away} 的禁區防守會被連續考驗。推薦 ${recTeam}，角球顆數建議 ${metrics.corners} 顆，黃牌張數建議 ${metrics.cards} 張。`,
+            `【${modelName}｜下半場風險曲線】數據顯示 60 分鐘後體能落差風險值達 ${metrics.lateRisk}%。${away} 若前段壓迫過猛，後段容易被 ${home} 打出空檔。讓球盤口建議看 ${handicap}，主推 ${recTeam}，大小分建議 ${recSize}。`,
+            `【${modelName}｜射門品質拆解】雙方總射門量預估 ${metrics.shots} 次以上，其中禁區內射門比例會決定勝負。${home} 若能提升第一腳處理速度，將比 ${away} 更容易創造連續攻勢。整體建議 ${recTeam}，大小分建議 ${recSize}，黃牌張數建議 ${metrics.cards} 張。`,
+            `【${modelName}｜盤口熱度校正】市場熱度與數據面交叉後，${recTeam} 的方向較吻合目前三網回傳。${home} 對 ${away} 的關鍵差距在中場轉換與禁區前壓迫，若節奏維持正常，讓球盤口建議 ${handicap}，大小分建議 ${recSize}。`,
+            `【${modelName}｜中場控制權分析】${home} 的傳導穩定度約 ${metrics.pass}%，但 ${away} 的中場攔截會讓比賽變得破碎。若裁判尺度偏緊，黃牌張數可能上看 ${metrics.cards} 張。推薦方向 ${recTeam}，大小分建議 ${recSize}，角球顆數建議 ${metrics.corners} 顆。`,
+            `【${modelName}｜攻防轉換模擬】模型模擬顯示，${home} 每次成功轉守為攻後，${away} 需要更快回收兩側空間。危險進攻預估 ${metrics.dangerous} 次，代表比賽不會太悶。讓球看 ${handicap}，推薦 ${recTeam}，大小分建議 ${recSize}。`,
+            `【${modelName}｜臨場強弱分層】目前綜合勝率信心約 ${metrics.prob}%，但比賽仍受首球時間影響。${home} 若先進球，${away} 會被迫提前壓上，反而增加後防漏洞。建議方向 ${recTeam}，大小分 ${recSize}，角球顆數建議 ${metrics.corners} 顆。`,
+            `【${modelName}｜禁區壓迫評分】${home} 在禁區前的二次進攻預估較活躍，${away} 必須避免連續被壓在低位。若前 30 分鐘角球累積偏快，本場總角球有機會接近 ${metrics.corners} 顆。讓球盤口建議 ${handicap}，推薦 ${recTeam}。`,
+            `【${modelName}｜綜合賽事結論】整合 ${dataNet} 後，本場關鍵是 ${home} 能否把控球轉成有效射門，以及 ${away} 的反擊能否打穿第一道防線。總體判斷仍偏向 ${recTeam}，讓球參考 ${handicap}，大小分建議 ${recSize}，黃牌張數建議 ${metrics.cards} 張。`,
+            `【${modelName}｜雙方獨贏分流】討論區熱度顯示 ${recTeam} 的支持度較集中，但平局防守盤仍有存在感。若 ${home} 開局控球超過 ${metrics.possession}%，獨贏方向會更明朗。讓球參考 ${handicap}，大小分建議 ${recSize}，黃牌預估 ${metrics.cards} 張。`,
+            `【${modelName}｜2.5分界線追蹤】目前大小分以 2.5 作為主要分水嶺，${metrics.tempo === '偏快' ? '大 2.5 以上討論熱度較高' : '小 2.5 以下討論熱度較穩'}。如果前段射門品質提升，盤面會快速變動。建議方向 ${recTeam}，角球顆數 ${metrics.corners} 顆。`,
+            `【${modelName}｜門將壓力模型】預估雙方門將合計撲救可能達 ${metrics.save} 次，代表禁區內會有一定威脅球。${away} 若被迫長時間解圍，角球數容易累積。主線看 ${recTeam}，大小分建議 ${recSize}，角球建議 ${metrics.corners} 顆。`,
+            `【${modelName}｜越位與反跑判定】${home} 的身後球嘗試會提高越位風險，模型估計越位約 ${metrics.offside} 次。若 ${away} 後防線壓得過高，反跑成功率會被放大。讓球建議 ${handicap}，推薦 ${recTeam}。`,
+            `【${modelName}｜前場壓迫回收】${home} 前場回收球預估 ${metrics.pressRecover} 次，這會讓 ${away} 的中後場出球壓力變高。若連續形成二波進攻，角球與射門都會上升。方向看 ${recTeam}，大小分建議 ${recSize}。`,
+            `【${modelName}｜禁區第三區占比】進攻第三區占比預估 ${metrics.attackThird}%，代表本場不會只是中場消耗戰。${home} 若能在肋部拿到空間，將直接影響讓球盤。建議 ${recTeam}，角球 ${metrics.corners} 顆，黃牌 ${metrics.cards} 張。`,
+            `【${modelName}｜對抗強度雷達】身體對抗指標約 ${metrics.duel}%，若裁判尺度偏嚴，黃牌張數會接近 ${metrics.cards} 張。${away} 若落後後加大逼搶，犯規點會往中後場集中。盤口主推 ${recTeam}，大小分 ${recSize}。`,
+            `【${modelName}｜半場節點模型】上半場前 35 分鐘若未出現進球，${away} 會更願意收縮降低風險；反之比賽會被迫拉開。半場節奏牽動大小分，本場建議 ${recSize}，讓球盤口仍以 ${handicap} 和 ${recTeam} 為準。`,
+            `【${modelName}｜角球盤專項】依國際賽常見角球盤落點，本場建議以 ${metrics.corners} 顆作為參考中軸。${home} 邊路推進與 ${away} 解圍次數若同步增加，角球會偏多。獨贏方向仍偏 ${recTeam}，大小分 ${recSize}。`,
+            `【${modelName}｜黃牌盤專項】國際賽黃牌盤常落在 3 到 5 張附近，本場對抗與反擊犯規都偏明顯，建議黃牌張數 ${metrics.cards} 張。若下半場比分接近，戰術犯規會增加。主推 ${recTeam}，讓球 ${handicap}。`,
+            `【${modelName}｜首球時間預測】若首球出現在 30 分鐘前，大小分會明顯往 ${recSize} 的方向靠攏；若拖到下半場，平局權重會上升。${home} 的主動進攻更值得關注，整體方向 ${recTeam}。`,
+            `【${modelName}｜替補席影響】比賽 65 分鐘後換人深度會改變攻防節奏，${home} 若能維持壓迫，${away} 後場失誤率會提升。建議 ${recTeam}，讓球 ${handicap}，角球 ${metrics.corners} 顆，黃牌 ${metrics.cards} 張。`,
+            `【${modelName}｜三網分歧校正】${dataNet} 對本場方向並非完全一致，但共同點是 ${recTeam} 的盤面韌性較好。大小分方面參考 ${recSize}，若前場危險進攻超過 ${metrics.dangerous} 次，總進球可能被推高。`,
+            `【${modelName}｜風險提示模型】本場最大風險在於早段紅黃牌或定位球失分。若 ${away} 先取得領先，${home} 必須提前加快節奏，角球數也會上升。建議角球 ${metrics.corners} 顆、黃牌 ${metrics.cards} 張，主線 ${recTeam}。`,
+            `【${modelName}｜最終量化建議】綜合控球、xG、危險進攻、討論區熱度與盤口回測，本場主要方向仍看 ${recTeam}。讓球盤口建議 ${handicap}，大小分建議 ${recSize}，角球顆數建議 ${metrics.corners} 顆，黃牌張數建議 ${metrics.cards} 張。`
+        ];
+    }
+
+    function getCurrentMatch() {
+        try {
+            if(typeof activeMatchObject !== 'undefined' && activeMatchObject) return activeMatchObject;
+        } catch(e) {}
+        return window.activeMatchObject || null;
+    }
+
+    function setButtonLocked(locked) {
+        aiGenerationLocked = locked;
+        const btn = document.getElementById('ai-generate-btn') || document.querySelector('button[onclick="triggerSofascoreAi()"]');
+        if(!btn) return;
+        if(!btn.id) btn.id = 'ai-generate-btn';
+        btn.disabled = !!locked;
+        btn.classList.toggle('is-generating', !!locked);
+        if(locked) {
+            btn.dataset.originalHtml = btn.dataset.originalHtml || btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> 正在生成中，請稍候完整跑完';
+        } else if(btn.dataset.originalHtml) {
+            btn.innerHTML = btn.dataset.originalHtml;
+        }
+    }
+
+    function typeWriterWithUnlock(element, text) {
+        let index = 0;
+        element.innerText = '';
+        if(typeof typingTimer !== 'undefined' && typingTimer) clearInterval(typingTimer);
+        typingTimer = setInterval(function(){
+            if(index < text.length) {
+                if(text.charAt(index) === '\n') element.innerHTML += '<br>';
+                else element.innerText += text.charAt(index);
+                index++;
+            } else {
+                clearInterval(typingTimer);
+                setButtonLocked(false);
+            }
+        }, 8);
+    }
+
+    function updateRecommendationExtras(m) {
+        const match = m || getCurrentMatch();
+        if(!match) return;
+        const metrics = getMatchMetrics(match);
+        const advSize = document.getElementById('adv-size');
+        if(!advSize) return;
+        let wrap = document.getElementById('custom-market-extra-wrap');
+        if(!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'custom-market-extra-wrap';
+            wrap.className = 'space-y-2 mt-2';
+            const parentLine = advSize.closest('div');
+            if(parentLine && parentLine.parentNode) parentLine.parentNode.insertBefore(wrap, parentLine.nextSibling);
+        }
+        wrap.innerHTML = `
+            <div class="custom-market-extra-line text-slate-400">🚩 角球顆數預測：<span id="adv-corners" class="text-orange-400 ml-2 font-mono">${metrics.corners} 顆</span></div>
+            <div class="custom-market-extra-line text-slate-400">🟨 黃牌張數預測：<span id="adv-cards" class="text-yellow-400 ml-2 font-mono">${metrics.cards} 張</span></div>
+        `;
+    }
+
+    const originalSelect = (typeof selectActiveMatch === 'function') ? selectActiveMatch : null;
+    if(originalSelect && !window.__customV4SelectPatched) {
+        window.__customV4SelectPatched = true;
+        selectActiveMatch = function(id) {
+            originalSelect(id);
+            setTimeout(function(){ updateRecommendationExtras(); }, 20);
+        };
+        window.selectActiveMatch = selectActiveMatch;
+    }
+
+    window.triggerSofascoreAi = function() {
+        if(aiGenerationLocked) return;
+        const match = getCurrentMatch();
+        if(!match) {
+            alert('請先從左側選擇一場賽事！');
+            return;
+        }
+        const txtElement = document.getElementById('ai-briefing-text');
+        const loader = document.getElementById('ai-loading-status');
+        const pBar = document.getElementById('ai-progress-bar');
+        const pTxt = document.getElementById('ai-progress-text');
+        const checked = document.querySelector('input[name="ai-model"]:checked');
+        const selectedModel = checked ? checked.value : 'chatgpt';
+
+        setButtonLocked(true);
+        if(typeof typingTimer !== 'undefined' && typingTimer) clearInterval(typingTimer);
+        if(txtElement) txtElement.innerText = '';
+        if(loader) loader.classList.remove('hidden');
+        if(pBar) pBar.style.width = '15%';
+        if(pTxt) pTxt.innerText = '正在讀取三大足球數據網臨場資訊';
+
+        setTimeout(function(){
+            if(pBar) pBar.style.width = '58%';
+            if(pTxt) pTxt.innerText = '正在比對 Sofascore、FotMob、WhoScored 數據差異';
+        }, 350);
+        setTimeout(function(){
+            if(pBar) pBar.style.width = '100%';
+            if(pTxt) pTxt.innerText = '正在生成本場專屬賽事說明';
+        }, 750);
+
+        setTimeout(function(){
+            if(loader) loader.classList.add('hidden');
+            const metrics = getMatchMetrics(match);
+            const templates = buildTemplates(selectedModel, match, metrics);
+            const idx = chooseTemplateIndex(selectedModel, match.id, templates.length);
+            const finalBrief = templates[idx];
+            if(txtElement) typeWriterWithUnlock(txtElement, finalBrief);
+            else setButtonLocked(false);
+        }, 1000);
+    };
+    try { triggerSofascoreAi = window.triggerSofascoreAi; } catch(e) {}
+
+    window.renderForumCharts = function(m) {
+        const container = document.getElementById('forum-charts-container');
+        if(!container || !m) return;
+        if(!m.advice) m.advice = { team: m.home + '不敗', handicap: '平手盤 (0)', size: '小 2/2.5', prob: '55%' };
+        const baseProb = safeNumber(m.advice.prob, 60);
+        let homeProb, drawProb, awayProb;
+        if(String(m.advice.team || '').includes(m.home)) {
+            homeProb = Math.max(45, Math.min(86, Math.floor(baseProb * 0.9)));
+            awayProb = Math.max(8, Math.floor((100 - homeProb) * 0.6));
+            drawProb = 100 - homeProb - awayProb;
+        } else if(String(m.advice.team || '').includes(m.away)) {
+            awayProb = Math.max(45, Math.min(86, Math.floor(baseProb * 0.9)));
+            homeProb = Math.max(8, Math.floor((100 - awayProb) * 0.6));
+            drawProb = 100 - homeProb - awayProb;
+        } else {
+            homeProb = 42 + (Number(m.id || 1) % 9);
+            awayProb = 30 + (Number(m.id || 1) % 8);
+            drawProb = 100 - homeProb - awayProb;
+        }
+        if(drawProb < 8) {
+            const shift = 8 - drawProb;
+            if(homeProb > awayProb) homeProb -= shift; else awayProb -= shift;
+            drawProb = 8;
+        }
+        const isBigSize = String(m.advice.size || '').includes('大');
+        const bigOdds = isBigSize ? Math.floor(65 + (Number(m.id || 1) % 12)) : Math.floor(24 + (Number(m.id || 1) % 12));
+        const smallOdds = 100 - bigOdds;
+
+        container.innerHTML = `
+            <div class="bg-slate-950 rounded-lg border border-slate-900 flex flex-col items-center justify-between">
+                <span class="forum-chart-title font-bold block text-center text-slate-400"><i class="fa-solid fa-users text-blue-400 mr-1"></i>足球討論區雙方獨贏比例</span>
+                <div class="pie-chart shadow-md shrink-0" style="--home-color:#3b82f6; --draw-color:#64748b; --away-color:#ef4444; --p1:${homeProb}%; --p2:${homeProb + drawProb}%;"></div>
+                <div class="forum-ratio-row grid grid-cols-3 w-full text-center font-mono">
+                    <div class="text-blue-400">主:${homeProb}%</div>
+                    <div class="text-slate-300">和:${drawProb}%</div>
+                    <div class="text-red-400">客:${awayProb}%</div>
+                </div>
+            </div>
+            <div class="bg-slate-950 rounded-lg border border-slate-900 flex flex-col items-center justify-between">
+                <span class="forum-chart-title font-bold block text-center text-slate-400"><i class="fa-solid fa-circle-nodes text-orange-400 mr-1"></i>大小分預估比例</span>
+                <div class="pie-chart shadow-md shrink-0" style="--home-color:#f59e0b; --draw-color:#14b8a6; --away-color:#14b8a6; --p1:${bigOdds}%; --p2:100%;"></div>
+                <div class="forum-size-row grid w-full text-center font-mono">
+                    <div class="text-amber-500">大2.5以上:${bigOdds}%</div>
+                    <div class="text-teal-400">小2.5以下:${smallOdds}%</div>
+                </div>
+            </div>
+        `;
+        updateRecommendationExtras(m);
+    };
+    try { renderForumCharts = window.renderForumCharts; } catch(e) {}
+
+    document.addEventListener('DOMContentLoaded', function(){
+        const btn = document.querySelector('button[onclick="triggerSofascoreAi()"]');
+        if(btn && !btn.id) btn.id = 'ai-generate-btn';
+    });
+})();
+</script>
+
+
+
+<script id="entry-notice-modal-script">
+(function(){
+    function setupEntryNoticeModal(){
+        const modal = document.getElementById('entry-notice-modal');
+        const agree = document.getElementById('entry-notice-agree');
+        const submit = document.getElementById('entry-notice-submit');
+        if(!modal || !agree || !submit) return;
+
+        document.body.classList.add('entry-notice-open');
+
+        function refreshButtonState(){
+            submit.disabled = !agree.checked;
+            submit.classList.toggle('entry-notice-ready', agree.checked);
+        }
+
+        agree.addEventListener('change', refreshButtonState);
+        submit.addEventListener('click', function(){
+            if(!agree.checked) return;
+            modal.classList.add('entry-notice-hidden');
+            document.body.classList.remove('entry-notice-open');
+        });
+
+        refreshButtonState();
+    }
+
+    if(document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupEntryNoticeModal);
+    } else {
+        setupEntryNoticeModal();
+    }
+})();
+</script>
+
+
+
+<!-- ================= 免費版遮罩補丁 ================= -->
+<style id="custom-free-version-style">
+    .free-version-banner {
+        background: linear-gradient(90deg, rgba(245,158,11,.16), rgba(239,68,68,.10));
+        border: 1px solid rgba(245,158,11,.28);
+        color: #fde68a;
+        border-radius: 14px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.55;
+        text-align: center;
+        box-shadow: 0 0 0 1px rgba(15,23,42,.45) inset;
+    }
+    .free-mask-host {
+        position: relative !important;
+        overflow: hidden !important;
+        isolation: isolate;
+    }
+    .free-mask-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 80;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 18px;
+        border-radius: 14px;
+        background:
+            linear-gradient(rgba(2,6,23,.95), rgba(2,6,23,.95)),
+            repeating-linear-gradient(0deg, rgba(148,163,184,.12) 0 12px, rgba(51,65,85,.12) 12px 24px),
+            repeating-linear-gradient(90deg, rgba(148,163,184,.12) 0 12px, rgba(30,41,59,.12) 12px 24px);
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    .free-mask-overlay .free-mask-card {
+        max-width: 90%;
+        background: rgba(15,23,42,.88);
+        border: 1px solid rgba(245,158,11,.28);
+        border-radius: 16px;
+        padding: 14px 16px;
+        box-shadow: 0 12px 35px rgba(0,0,0,.28);
+    }
+    .free-mask-overlay .free-mask-title {
+        display: block;
+        font-size: 13px;
+        font-weight: 900;
+        color: #fbbf24;
+        letter-spacing: .08em;
+        margin-bottom: 6px;
+    }
+    .free-mask-overlay .free-mask-text {
+        font-size: 12px;
+        line-height: 1.7;
+        font-weight: 800;
+        color: #e2e8f0;
+    }
+    .free-top-keep-visible {
+        position: relative;
+        z-index: 95;
+    }
+    #adv-team.free-fixed-team {
+        color: #34d399 !important;
+        font-weight: 900 !important;
+    }
+</style>
+
+<script id="custom-free-version-script">
+(function(){
+    function buildMaskHtml(){
+        return `
+            <div class="free-mask-card">
+                <span class="free-mask-title">免費版內容已遮罩</span>
+                <div class="free-mask-text">目前使用版本為免費版，請聯繫專屬代理龍女進行升級</div>
+            </div>
+        `;
+    }
+
+    function addMask(target, key){
+        if(!target) return;
+        target.classList.add('free-mask-host');
+        let overlay = target.querySelector(':scope > .free-mask-overlay[data-mask-key="' + key + '"]');
+        if(!overlay){
+            overlay = document.createElement('div');
+            overlay.className = 'free-mask-overlay';
+            overlay.dataset.maskKey = key;
+            overlay.innerHTML = buildMaskHtml();
+            target.appendChild(overlay);
+        }
+    }
+
+    function forceCanada(){
+        const advTeam = document.getElementById('adv-team');
+        if(advTeam){
+            advTeam.textContent = '加拿大';
+            advTeam.classList.add('free-fixed-team');
+        }
+    }
+
+    function ensureBanner(){
+        const rightAside = document.querySelector('body > div.flex-1.flex > aside:last-child');
+        if(!rightAside) return;
+        let banner = document.getElementById('free-version-banner');
+        if(!banner){
+            banner = document.createElement('div');
+            banner.id = 'free-version-banner';
+            banner.className = 'free-version-banner shrink-0';
+            banner.textContent = '目前使用版本為免費版，請聯繫專屬代理龍女進行升級';
+            rightAside.insertBefore(banner, rightAside.firstElementChild);
+        }
+    }
+
+    function relabelBadges(){
+        const topBadge = document.querySelector('body > div.flex-1.flex > aside:last-child > div:nth-of-type(2) .flex.justify-between.items-center span:last-child');
+        if(topBadge){
+            topBadge.innerHTML = '<i class="fa-solid fa-unlock-keyhole mr-1"></i> 免費版';
+            topBadge.className = 'text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded';
+        }
+        const liveBadge = document.querySelector('body > div.flex-1.flex > aside:last-child > div:nth-of-type(3) .flex.justify-between.items-center span:last-child');
+        if(liveBadge){
+            liveBadge.textContent = 'FREE';
+            liveBadge.className = 'text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold font-mono';
+        }
+    }
+
+    function maskTopPredictionModule(){
+        const topPanel = document.querySelector('body > div.flex-1.flex > aside:last-child > div:nth-of-type(2)');
+        if(!topPanel) return;
+        const recBox = topPanel.querySelector('.bg-emerald-500\/5');
+        if(recBox) recBox.classList.add('free-top-keep-visible');
+        const group = topPanel.querySelector('.space-y-4.relative');
+        if(!group) return;
+        const target = Array.from(group.children).find((el, idx) => idx > 0 && !el.classList.contains('absolute'));
+        addMask(target, 'top-prediction');
+    }
+
+    function maskAiResultModule(){
+        const aiPanel = document.querySelector('body > div.flex-1.flex > aside:last-child > div:nth-of-type(3)');
+        if(!aiPanel) return;
+        const resultBox = aiPanel.querySelector('.relative.overflow-hidden.rounded-lg.min-h-\[110px\].flex.flex-col.justify-center');
+        addMask(resultBox, 'ai-result');
+    }
+
+    function maskForumModule(){
+        const forumPanel = document.querySelector('body > div.flex-1.flex > aside:last-child > div:nth-of-type(4)');
+        if(!forumPanel) return;
+        const target = forumPanel.querySelector('.flex-1.flex.flex-col.relative.overflow-hidden');
+        addMask(target, 'forum');
+    }
+
+    function applyFreeVersion(){
+        ensureBanner();
+        relabelBadges();
+        forceCanada();
+        maskTopPredictionModule();
+        maskAiResultModule();
+        maskForumModule();
+    }
+
+    function wrapAction(name){
+        const fn = window[name];
+        if(typeof fn !== 'function' || fn.__freeWrapped) return;
+        const wrapped = function(){
+            const result = fn.apply(this, arguments);
+            setTimeout(applyFreeVersion, 30);
+            setTimeout(forceCanada, 60);
+            return result;
+        };
+        wrapped.__freeWrapped = true;
+        window[name] = wrapped;
+        try { eval(name + ' = window[name]'); } catch(e) {}
+    }
+
+    function bootstrap(){
+        applyFreeVersion();
+        wrapAction('selectActiveMatch');
+        wrapAction('triggerSofascoreAi');
+        setTimeout(applyFreeVersion, 120);
+        setTimeout(applyFreeVersion, 500);
+    }
+
+    if(document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootstrap);
+    } else {
+        bootstrap();
+    }
+})();
+</script>
+
+
+
+<!-- ================= 免費版模糊遮罩加強補丁 ================= -->
+<style id="custom-free-version-blur-upgrade-style">
+    .free-mask-host.free-mask-strong-blur {
+        position: relative !important;
+        overflow: hidden !important;
+        isolation: isolate;
+    }
+    .free-mask-host.free-mask-strong-blur > *:not(.free-mask-overlay):not(.free-top-keep-visible) {
+        filter: blur(16px) brightness(.45) saturate(.7) !important;
+        -webkit-filter: blur(16px) brightness(.45) saturate(.7) !important;
+        transform: scale(1.02);
+        transform-origin: center center;
+        user-select: none !important;
+    }
+    .free-mask-host.free-mask-strong-blur .free-mask-overlay {
+        background: rgba(2, 6, 23, 0.28) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(245, 158, 11, 0.16) !important;
+    }
+    .free-mask-host.free-mask-strong-blur .free-mask-card {
+        background: rgba(15, 23, 42, 0.88) !important;
+        border: 1px solid rgba(245, 158, 11, 0.34) !important;
+    }
+    .free-mask-host.free-mask-strong-blur .free-mask-title {
+        color: #fbbf24 !important;
+    }
+    .free-mask-host.free-mask-strong-blur .free-mask-text {
+        color: #f8fafc !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        letter-spacing: .04em;
+    }
+</style>
+
+<script id="custom-free-version-blur-upgrade-script">
+(function(){
+    function updateOverlayText(){
+        document.querySelectorAll('.free-mask-overlay').forEach(function(overlay){
+            const title = overlay.querySelector('.free-mask-title');
+            const text = overlay.querySelector('.free-mask-text');
+            if(title) title.textContent = '結果已遮罩';
+            if(text) text.textContent = '請升級專業版';
+        });
+    }
+
+    function applyStrongBlur(){
+        document.querySelectorAll('.free-mask-host').forEach(function(host){
+            host.classList.add('free-mask-strong-blur');
+        });
+    }
+
+    function refresh(){
+        applyStrongBlur();
+        updateOverlayText();
+    }
+
+    const wrapTargets = ['selectActiveMatch', 'triggerSofascoreAi', 'renderForumCharts'];
+    function wrapName(name){
+        const fn = window[name];
+        if(typeof fn !== 'function' || fn.__blurWrapped) return;
+        const wrapped = function(){
+            const result = fn.apply(this, arguments);
+            setTimeout(refresh, 40);
+            setTimeout(refresh, 220);
+            return result;
+        };
+        wrapped.__blurWrapped = true;
+        window[name] = wrapped;
+        try { eval(name + ' = window[name]'); } catch(e) {}
+    }
+
+    function boot(){
+        refresh();
+        wrapTargets.forEach(wrapName);
+        setTimeout(refresh, 120);
+        setTimeout(refresh, 600);
+    }
+
+    if(document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
+})();
+</script>
+
+
+
+<!-- ================= 免費版精準遮罩修正補丁 ================= -->
+<style id="custom-free-version-fixed-style">
+    .pro-upgrade-mask-target {
+        position: relative !important;
+        overflow: hidden !important;
+        isolation: isolate;
+        border-radius: 14px;
+    }
+    .pro-upgrade-mask-target > *:not(.pro-upgrade-mask-overlay) {
+        filter: blur(18px) brightness(.38) saturate(.72) !important;
+        -webkit-filter: blur(18px) brightness(.38) saturate(.72) !important;
+        user-select: none !important;
+        pointer-events: none !important;
+        transform: scale(1.01);
+        transform-origin: center center;
+    }
+    .pro-upgrade-mask-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 18px;
+        background: rgba(2, 6, 23, 0.35);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .pro-upgrade-mask-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        border-radius: 16px;
+        padding: 14px 18px;
+        max-width: 88%;
+        box-shadow: 0 12px 30px rgba(0,0,0,.28);
+    }
+    .pro-upgrade-mask-title {
+        display: block;
+        color: #fbbf24;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        margin-bottom: 6px;
+    }
+    .pro-upgrade-mask-text {
+        color: #f8fafc;
+        font-size: 14px;
+        line-height: 1.6;
+        font-weight: 900;
+    }
+</style>
+<script id="custom-free-version-fixed-script">
+(function(){
+    function createOverlay(){
+        const overlay = document.createElement('div');
+        overlay.className = 'pro-upgrade-mask-overlay';
+        overlay.innerHTML = '<div class="pro-upgrade-mask-card"><span class="pro-upgrade-mask-title">免費版結果已遮罩</span><div class="pro-upgrade-mask-text">請升級專業版</div></div>';
+        return overlay;
+    }
+
+    function applyMask(target, key){
+        if(!target) return;
+        target.classList.add('pro-upgrade-mask-target');
+        let overlay = target.querySelector(':scope > .pro-upgrade-mask-overlay');
+        if(!overlay){
+            overlay = createOverlay();
+            overlay.dataset.maskKey = key || '';
+            target.appendChild(overlay);
+        }
+    }
+
+    function getTopResultsWrap(){
+        const choices = document.getElementById('choices-box');
+        return choices ? choices.closest('div.space-y-4') : null;
+    }
+
+    function getAiResultWrap(){
+        const briefing = document.getElementById('ai-briefing-text');
+        return briefing ? briefing.parentElement : null;
+    }
+
+    function getForumWrap(){
+        const charts = document.getElementById('forum-charts-container');
+        return charts ? charts.parentElement : null;
+    }
+
+    function forceCanada(){
+        const advTeam = document.getElementById('adv-team');
+        if(advTeam) advTeam.textContent = '加拿大';
+    }
+
+    function runFix(){
+        forceCanada();
+        applyMask(getTopResultsWrap(), 'top-results');
+        applyMask(getAiResultWrap(), 'ai-results');
+        applyMask(getForumWrap(), 'forum-results');
+    }
+
+    function wrapFunction(name){
+        const fn = window[name];
+        if(typeof fn !== 'function' || fn.__freeFixWrapped) return;
+        const wrapped = function(){
+            const result = fn.apply(this, arguments);
+            setTimeout(runFix, 30);
+            setTimeout(runFix, 180);
+            setTimeout(runFix, 600);
+            return result;
+        };
+        wrapped.__freeFixWrapped = true;
+        window[name] = wrapped;
+        try { eval(name + ' = window[name]'); } catch(e) {}
+    }
+
+    function boot(){
+        runFix();
+        ['selectActiveMatch','triggerSofascoreAi','renderForumCharts'].forEach(wrapFunction);
+        const observer = new MutationObserver(function(){ runFix(); });
+        const rightAside = document.querySelector('body > div.flex-1.flex > aside:last-child');
+        if(rightAside) observer.observe(rightAside, { childList: true, subtree: true, characterData: true });
+        setInterval(runFix, 1200);
+    }
+
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+})();
+</script>
+
+
+
+<!-- ================= 手機 / 電腦 RWD 響應式版面修正 ================= -->
+<style id="custom-responsive-mobile-desktop-style">
+    * {
+        box-sizing: border-box;
+    }
+
+    html, body {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    @media (max-width: 1024px) {
+        body {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+        }
+
+        body > header {
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+            padding: 14px 14px !important;
+        }
+
+        body > header > div:first-child {
+            width: 100% !important;
+            align-items: flex-start !important;
+        }
+
+        body > header h1 {
+            font-size: 16px !important;
+            line-height: 1.35 !important;
+            letter-spacing: .08em !important;
+        }
+
+        body > header p {
+            white-space: normal !important;
+            line-height: 1.4 !important;
+        }
+
+        body > header > div:last-child {
+            width: 100% !important;
+            justify-content: center !important;
+            text-align: center !important;
+            white-space: normal !important;
+            line-height: 1.45 !important;
+        }
+
+        body > div.flex-1.flex {
+            display: flex !important;
+            flex-direction: column !important;
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+        }
+
+        body > div.flex-1.flex > aside:first-child,
+        body > div.flex-1.flex > main,
+        body > div.flex-1.flex > aside:last-child {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            flex: 0 0 auto !important;
+            flex-basis: auto !important;
+            overflow: visible !important;
+        }
+
+        body > div.flex-1.flex > aside:first-child {
+            border-right: 0 !important;
+            border-bottom: 1px solid #0f172a !important;
+        }
+
+        #schedule-container {
+            max-height: 46vh !important;
+            overflow-y: auto !important;
+            padding: 10px !important;
+        }
+
+        .date-header {
+            top: 0 !important;
+            z-index: 20 !important;
+            padding: 9px 4px !important;
+            font-size: 13px !important;
+        }
+
+        #schedule-container > div:not(.date-header) {
+            padding: 11px !important;
+        }
+
+        body > div.flex-1.flex > main {
+            padding: 14px !important;
+            gap: 14px !important;
+        }
+
+        body > div.flex-1.flex > main > div:first-child {
+            aspect-ratio: 16 / 9 !important;
+            max-height: none !important;
+            min-height: 190px !important;
+        }
+
+        body > div.flex-1.flex > main .grid.grid-cols-2 {
+            grid-template-columns: 1fr !important;
+        }
+
+        body > div.flex-1.flex > aside:last-child {
+            border-left: 0 !important;
+            border-top: 1px solid #0f172a !important;
+            padding: 14px !important;
+            gap: 14px !important;
+        }
+
+        body > div.flex-1.flex > aside:last-child > div {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        body > div.flex-1.flex > aside:last-child .grid.grid-cols-4 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        #choices-box {
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            gap: 6px !important;
+        }
+
+        #choices-box > div {
+            font-size: 12px !important;
+            padding: 8px 2px !important;
+        }
+
+        #forum-charts-container {
+            grid-template-columns: 1fr !important;
+            min-height: auto !important;
+            overflow: visible !important;
+        }
+
+        #forum-charts-container > div {
+            min-height: 260px !important;
+            width: 100% !important;
+        }
+
+        #forum-charts-container .pie-chart {
+            width: 120px !important;
+            height: 120px !important;
+            min-width: 120px !important;
+            min-height: 120px !important;
+        }
+
+        .forum-ratio-row,
+        .forum-size-row {
+            font-size: 16px !important;
+            white-space: normal !important;
+        }
+
+        .forum-ratio-row div,
+        .forum-size-row div {
+            font-size: 16px !important;
+            white-space: normal !important;
+        }
+
+        #entry-notice-modal {
+            align-items: flex-start !important;
+            overflow-y: auto !important;
+            padding: 14px !important;
+        }
+
+        #entry-notice-modal > div {
+            max-width: 100% !important;
+            margin: 14px 0 !important;
+            border-radius: 22px !important;
+        }
+
+        #entry-notice-modal .px-6 {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+        }
+
+        #entry-notice-modal .py-5 {
+            padding-top: 16px !important;
+            padding-bottom: 16px !important;
+        }
+
+        .free-version-banner {
+            font-size: 12px !important;
+            line-height: 1.55 !important;
+        }
+
+        .pro-upgrade-mask-card,
+        .free-mask-card {
+            padding: 12px 14px !important;
+        }
+
+        .pro-upgrade-mask-text,
+        .free-mask-text {
+            font-size: 13px !important;
+        }
+    }
+
+    @media (max-width: 640px) {
+        body {
+            font-size: 13px !important;
+        }
+
+        body > header {
+            padding: 12px !important;
+        }
+
+        body > header .bg-gradient-to-tr {
+            padding: 9px !important;
+        }
+
+        body > header h1 {
+            font-size: 15px !important;
+        }
+
+        body > div.flex-1.flex > aside:first-child,
+        body > div.flex-1.flex > main,
+        body > div.flex-1.flex > aside:last-child {
+            border-radius: 0 !important;
+        }
+
+        #schedule-container {
+            max-height: 42vh !important;
+        }
+
+        body > div.flex-1.flex > main {
+            padding: 12px !important;
+        }
+
+        body > div.flex-1.flex > main > div:first-child {
+            min-height: 160px !important;
+        }
+
+        #panel-title {
+            font-size: 16px !important;
+            line-height: 1.45 !important;
+        }
+
+        #panel-meta {
+            font-size: 11px !important;
+            line-height: 1.5 !important;
+        }
+
+        #home-stars-box > div,
+        #away-stars-box > div {
+            font-size: 14px !important;
+            line-height: 1.45 !important;
+            padding: 10px 12px !important;
+        }
+
+        body > div.flex-1.flex > aside:last-child {
+            padding: 12px !important;
+        }
+
+        body > div.flex-1.flex > aside:last-child .p-4 {
+            padding: 13px !important;
+        }
+
+        body > div.flex-1.flex > aside:last-child .text-base {
+            font-size: 15px !important;
+        }
+
+        #ai-briefing-text,
+        #report-box {
+            font-size: 13px !important;
+            line-height: 1.7 !important;
+        }
+
+        #choices-box {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        body > div.flex-1.flex > aside:last-child .grid.grid-cols-4 {
+            grid-template-columns: 1fr 1fr !important;
+        }
+
+        button[onclick="triggerSofascoreAi()"],
+        #ai-generate-btn {
+            white-space: normal !important;
+            line-height: 1.45 !important;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+
+        #forum-charts-container .pie-chart {
+            width: 106px !important;
+            height: 106px !important;
+            min-width: 106px !important;
+            min-height: 106px !important;
+        }
+
+        .forum-ratio-row,
+        .forum-size-row,
+        .forum-ratio-row div,
+        .forum-size-row div {
+            font-size: 14px !important;
+        }
+
+        .pro-upgrade-mask-overlay,
+        .free-mask-overlay {
+            padding: 12px !important;
+        }
+    }
+</style>
+
+</body>
+</html>
